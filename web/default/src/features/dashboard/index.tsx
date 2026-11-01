@@ -174,6 +174,7 @@ export function Dashboard() {
 
   const [modelData, setModelData] = useState<QuotaDataItem[]>([])
   const [dataLoading, setDataLoading] = useState(false)
+  const [modelDataRefreshKey, setModelDataRefreshKey] = useState(0)
   const [chartPreferences, setChartPreferences] =
     useState<DashboardChartPreferences>(() => getSavedChartPreferences())
   const [modelFilters, setModelFilters] = useState<DashboardFilters>(() =>
@@ -327,6 +328,7 @@ export function Dashboard() {
                   <LazyLogStatCards
                     filters={modelFilters}
                     onDataUpdate={handleDataUpdate}
+                    refreshKey={modelDataRefreshKey}
                   />
                 </Suspense>
               </FadeIn>
@@ -347,6 +349,9 @@ export function Dashboard() {
                     }
                     timeGranularity={
                       modelFilters.time_granularity || DEFAULT_TIME_GRANULARITY
+                    }
+                    onRefresh={() =>
+                      setModelDataRefreshKey((current) => current + 1)
                     }
                   />
                 </Suspense>
