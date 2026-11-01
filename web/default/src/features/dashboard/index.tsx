@@ -36,6 +36,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { ModelsChartPreferences } from './components/models/models-chart-preferences'
 import { ModelsFilter } from './components/models/models-filter-dialog'
+import { PendingApprovals } from './components/models/pending-approvals'
 import { OverviewDashboard } from './components/overview/overview-dashboard'
 import { DEFAULT_TIME_GRANULARITY } from './constants'
 import {
@@ -217,6 +218,7 @@ export function Dashboard() {
 
   const meta = SECTION_META[activeSection] ?? SECTION_META.overview
   const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
+  const isRoot = Boolean(userRole && userRole >= ROLE.SUPER_ADMIN)
   const visibleSections = useMemo(
     () =>
       DASHBOARD_SECTION_IDS.filter(
@@ -319,6 +321,7 @@ export function Dashboard() {
           {activeSection === 'overview' && <OverviewDashboard />}
           {activeSection === 'models' && (
             <>
+              {isRoot && <PendingApprovals />}
               <FadeIn>
                 <Suspense fallback={<LogStatCardsFallback />}>
                   <LazyLogStatCards
