@@ -61,6 +61,11 @@ type QuotaApplicationSalesSummary struct {
 	TestCount         int64  `json:"test_count"`
 }
 
+type QuotaApplicationSalesOption struct {
+	ApplicantId       int    `json:"applicant_id"`
+	ApplicantUsername string `json:"applicant_username"`
+}
+
 type QuotaApplicationSummary struct {
 	QuotaAmount       int64                         `json:"quota_amount"`
 	ApplicationCount  int64                         `json:"application_count"`
@@ -77,6 +82,7 @@ type QuotaApplicationSummary struct {
 	TestQuota         int64                         `json:"test_quota"`
 	TestCount         int64                         `json:"test_count"`
 	Sales             []QuotaApplicationSalesSummary `json:"sales" gorm:"-"`
+	AvailableSales    []QuotaApplicationSalesOption  `json:"available_sales" gorm:"-"`
 	Applications      []QuotaApplication             `json:"applications" gorm:"-"`
 }
 
@@ -93,6 +99,18 @@ func GetQuotaApplicationSummary(applicantId *int, from, to int64) (*QuotaApplica
 	}
 	period := "((qa.status = ? AND qa.reviewed_at >= ? AND qa.reviewed_at < ?) OR (qa.status <> ? AND qa.created_at >= ? AND qa.created_at < ?))"
 	args := []interface{}{QuotaApplicationStatusApproved, from, to, QuotaApplicationStatusApproved, from, to}
+
+	// Keep the selector independent from the selected salesperson. Otherwise,
+	// choosing one salesperson would shrink the menu to that single option.
+	availableSalesQuery := DB.Table("quota_applications AS qa").
+		Joins("LEFT JOIN users AS applicant ON applicant.id = qa.applicant_id").
+		Where(period, args...).
+		Select("DISTINCT qa.applicant_id, applicant.username AS applicant_username").
+		Order("applicant.username ASC, qa.applicant_id ASC")
+	var availableSales []QuotaApplicationSalesOption
+	if err := availableSalesQuery.Scan(&availableSales).Error; err != nil {
+		return nil, err
+	}
 	base = base.Where(period, args...)
 
 	var result QuotaApplicationSummary
@@ -114,18 +132,32 @@ func GetQuotaApplicationSummary(applicantId *int, from, to int64) (*QuotaApplica
 		return nil, err
 	}
 
-	applicationsQuery := DB.Table("quota_applications AS qa").
+	result.Applications = []QuotaApplication{}
+	result.AvailableSales = availableSales
+	return &result, nil
+}
+
+func ListQuotaApplicationReconciliationItems(applicantId *int, from, to int64, unpaidOnly bool) ([]QuotaApplication, error) {
+	query := DB.Table("quota_applications AS qa").
 		Joins("LEFT JOIN users AS applicant ON applicant.id = qa.applicant_id").
 		Joins("LEFT JOIN users AS target ON target.id = qa.target_user_id").
 		Joins("LEFT JOIN users AS reviewer ON reviewer.id = qa.reviewed_by").
-		Where(period, args...)
+		Where("((qa.status = ? AND qa.reviewed_at >= ? AND qa.reviewed_at < ?) OR (qa.status <> ? AND qa.created_at >= ? AND qa.created_at < ?))",
+			QuotaApplicationStatusApproved, from, to, QuotaApplicationStatusApproved, from, to)
 	if applicantId != nil {
-		applicationsQuery = applicationsQuery.Where("qa.applicant_id = ?", *applicantId)
+		query = query.Where("qa.applicant_id = ?", *applicantId)
 	}
-	if err := applicationsQuery.Select("qa.*, applicant.username AS applicant_username, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").Order("qa.reviewed_at DESC, qa.id DESC").Limit(500).Scan(&result.Applications).Error; err != nil {
-		return nil, err
+	if unpaidOnly {
+		query = query.Where("qa.status = ? AND qa.payment_status = ? AND COALESCE(qa.is_test_amount, 0) = ?",
+			QuotaApplicationStatusApproved, "unpaid", false)
 	}
-	return &result, nil
+	var applications []QuotaApplication
+	err := query.Select("qa.*, applicant.username AS applicant_username, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").
+		Order("qa.reviewed_at DESC, qa.id DESC").Limit(500).Scan(&applications).Error
+	if applications == nil {
+		applications = []QuotaApplication{}
+	}
+	return applications, err
 }
 
 func IsQuotaApplicationStatus(status string) bool {

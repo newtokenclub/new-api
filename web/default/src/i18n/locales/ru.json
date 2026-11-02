@@ -1,5 +1,8 @@
 {
   "translation": {
+    "All applications": "Все заявки",
+    "Outstanding payments": "Ожидаемые платежи",
+    "No outstanding payments": "Нет ожидаемых платежей",
     "Consumption data hidden": "Данные о расходе скрыты — нажмите, чтобы показать",
     "360": "360",
     "1000": "1000",
@@ -102,8 +105,8 @@
     "Invoiceable CNY amount cannot be negative.": "Invoiceable CNY amount cannot be negative.",
     "Attachment upload failed": "Attachment upload failed",
     "Payment status": "Payment status",
-    "Paid": "Paid",
-    "Unpaid": "Unpaid",
+    "Paid": "Оплачено",
+    "Unpaid": "Не оплачено",
     "Invoice requirement": "Invoice requirement",
     "Invoice required": "Invoice required",
     "No invoice required": "No invoice required",

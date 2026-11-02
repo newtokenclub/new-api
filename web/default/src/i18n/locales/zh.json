@@ -1,5 +1,8 @@
 {
   "translation": {
+    "All applications": "全部申请",
+    "Outstanding payments": "待回款额度",
+    "No outstanding payments": "暂无待回款申请",
     "Consumption data hidden": "消耗数据已隐藏，点击显示",
     "360": "360",
     "1000": "1000",

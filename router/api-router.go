@@ -186,6 +186,7 @@ func SetApiRouter(router *gin.Engine) {
 			quotaApplicationRoute.POST("/attachments/upload", middleware.RequirePermission(authz.QuotaApplicationApply), controller.UploadQuotaApplicationAttachment)
 			quotaApplicationRoute.GET("", middleware.RequirePermission(authz.QuotaApplicationApply), controller.ListQuotaApplications)
 			quotaApplicationRoute.GET("/summary", middleware.RequirePermission(authz.QuotaApplicationApply), controller.QuotaApplicationSummary)
+			quotaApplicationRoute.GET("/summary/applications", middleware.RequirePermission(authz.QuotaApplicationApply), controller.QuotaApplicationReconciliationApplications)
 			quotaApplicationRoute.GET("/users/search", middleware.RequirePermission(authz.QuotaApplicationApply), controller.SearchQuotaApplicationTargets)
 			quotaApplicationRoute.GET("/:id", middleware.RequirePermission(authz.QuotaApplicationApply), controller.GetQuotaApplication)
 			quotaApplicationRoute.POST("", middleware.RequirePermission(authz.QuotaApplicationApply), controller.CreateQuotaApplication)

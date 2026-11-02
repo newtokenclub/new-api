@@ -159,6 +159,42 @@ func QuotaApplicationSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": data})
 }
 
+func QuotaApplicationReconciliationApplications(c *gin.Context) {
+	from, err := strconv.ParseInt(c.Query("from"), 10, 64)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	to, err := strconv.ParseInt(c.Query("to"), 10, 64)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if to <= from || to-from > 366*24*60*60 {
+		common.ApiErrorMsg(c, "invalid date range")
+		return
+	}
+	var applicantID *int
+	if c.GetInt("role") != common.RoleRootUser {
+		id := c.GetInt("id")
+		applicantID = &id
+	} else if raw := strings.TrimSpace(c.Query("applicant_id")); raw != "" {
+		id, parseErr := strconv.Atoi(raw)
+		if parseErr != nil {
+			common.ApiError(c, parseErr)
+			return
+		}
+		applicantID = &id
+	}
+	unpaidOnly := strings.EqualFold(strings.TrimSpace(c.Query("unpaid_only")), "true")
+	items, err := model.ListQuotaApplicationReconciliationItems(applicantID, from, to, unpaidOnly)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": items})
+}
+
 func GetQuotaApplication(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

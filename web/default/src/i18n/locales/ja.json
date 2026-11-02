@@ -1,5 +1,8 @@
 {
   "translation": {
+    "All applications": "すべての申請",
+    "Outstanding payments": "未回収金額",
+    "No outstanding payments": "未回収の申請はありません",
     "Consumption data hidden": "消費データは非表示です。クリックして表示",
     "360": "360",
     "1000": "1000",
@@ -102,8 +105,8 @@
     "Invoiceable CNY amount cannot be negative.": "Invoiceable CNY amount cannot be negative.",
     "Attachment upload failed": "Attachment upload failed",
     "Payment status": "Payment status",
-    "Paid": "Paid",
-    "Unpaid": "Unpaid",
+    "Paid": "支払い済み",
+    "Unpaid": "未払い",
     "Invoice requirement": "Invoice requirement",
     "Invoice required": "Invoice required",
     "No invoice required": "No invoice required",

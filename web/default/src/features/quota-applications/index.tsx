@@ -67,6 +67,7 @@ import {
   createQuotaApplication,
   uploadQuotaApplicationAttachment,
   getQuotaApplicationSummary,
+  listQuotaApplicationReconciliationItems,
   listQuotaApplications,
   reviewQuotaApplication,
   updateQuotaApplicationAccounting,
@@ -102,6 +103,7 @@ function ReconciliationView(props: { isRoot: boolean }) {
   const [startDate, setStartDate] = useState(() => getLocalDateInputValue(-29))
   const [endDate, setEndDate] = useState(() => getLocalDateInputValue())
   const [applicantId, setApplicantId] = useState<number | undefined>()
+  const [unpaidOnly, setUnpaidOnly] = useState(false)
   const range = getReconciliationRange(startDate, endDate)
   const rangeDays = (range.to - range.from) / (24 * 60 * 60)
   const isRangeInvalid =
@@ -114,12 +116,31 @@ function ReconciliationView(props: { isRoot: boolean }) {
     queryFn: () => getQuotaApplicationSummary({ ...range, applicantId }),
     enabled: !isRangeInvalid,
   })
+  const {
+    data: reconciliationApplications = [],
+    isLoading: applicationsLoading,
+    isError: applicationsError,
+  } = useQuery({
+    queryKey: [
+      'quota-application-reconciliation-items',
+      range.from,
+      range.to,
+      applicantId ?? 'all',
+      unpaidOnly,
+    ],
+    queryFn: () =>
+      listQuotaApplicationReconciliationItems({
+        ...range,
+        applicantId,
+        unpaidOnly,
+      }),
+    enabled: !isRangeInvalid,
+  })
   const summary = data
     ? {
         ...data,
         // Older API responses may serialize empty slices as null.
         sales: Array.isArray(data.sales) ? data.sales : [],
-        applications: Array.isArray(data.applications) ? data.applications : [],
       }
     : {
         quota_amount: 0,
@@ -130,7 +151,7 @@ function ReconciliationView(props: { isRoot: boolean }) {
         rejected_quota: 0,
         rejected_count: 0,
         sales: [],
-        applications: [],
+        available_sales: [],
         invoice_amount_cents: 0,
         paid_quota: 0,
         unpaid_quota: 0,
@@ -138,7 +159,13 @@ function ReconciliationView(props: { isRoot: boolean }) {
         test_quota: 0,
         test_count: 0,
       }
-  const selectedSales = props.isRoot ? summary.sales : []
+  let selectedSales: typeof summary.available_sales = []
+  if (props.isRoot && Array.isArray(summary.available_sales)) {
+    selectedSales = summary.available_sales
+  }
+  let applicationsEmptyMessage = t('No applications')
+  if (unpaidOnly) applicationsEmptyMessage = t('No outstanding payments')
+  if (applicationsLoading) applicationsEmptyMessage = t('Loading...')
   return (
     <div className='space-y-4'>
       <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
@@ -197,13 +224,25 @@ function ReconciliationView(props: { isRoot: boolean }) {
             </SelectContent>
           </Select>
         )}
+        <Select
+          value={unpaidOnly ? 'unpaid' : 'all'}
+          onValueChange={(value) => setUnpaidOnly(value === 'unpaid')}
+        >
+          <SelectTrigger className='w-full sm:w-48'>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='all'>{t('All applications')}</SelectItem>
+            <SelectItem value='unpaid'>{t('Outstanding payments')}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       {isRangeInvalid && (
         <p className='text-destructive text-sm'>
           {t('Select a valid date range of no more than 366 days')}
         </p>
       )}
-      {isError && !isRangeInvalid && (
+      {(isError || applicationsError) && !isRangeInvalid && (
         <p className='text-destructive text-sm'>
           {t('Failed to load reconciliation')}
         </p>
@@ -283,17 +322,17 @@ function ReconciliationView(props: { isRoot: boolean }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {summary.applications.length === 0 ? (
+            {reconciliationApplications.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={props.isRoot ? 6 : 5}
                   className='text-muted-foreground h-24 text-center'
                 >
-                  {isLoading ? t('Loading...') : t('No applications')}
+                  {applicationsEmptyMessage}
                 </TableCell>
               </TableRow>
             ) : (
-              summary.applications.map((item) => (
+              reconciliationApplications.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
                     {props.isRoot

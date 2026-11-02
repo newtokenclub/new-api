@@ -64,6 +64,23 @@ export async function getQuotaApplicationSummary(params: {
   return res.data.data
 }
 
+export async function listQuotaApplicationReconciliationItems(params: {
+  from: number
+  to: number
+  applicantId?: number
+  unpaidOnly?: boolean
+}): Promise<QuotaApplication[]> {
+  const res = await api.get('/api/quota-applications/summary/applications', {
+    params: {
+      from: params.from,
+      to: params.to,
+      applicant_id: params.applicantId ?? undefined,
+      unpaid_only: params.unpaidOnly || undefined,
+    },
+  })
+  return Array.isArray(res.data.data) ? res.data.data : []
+}
+
 export async function searchQuotaApplicationTargets(
   keyword: string
 ): Promise<QuotaApplicationTarget[]> {

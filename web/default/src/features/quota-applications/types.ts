@@ -81,6 +81,11 @@ export interface QuotaApplicationSalesSummary {
   test_count: number
 }
 
+export interface QuotaApplicationSalesOption {
+  applicant_id: number
+  applicant_username: string
+}
+
 export interface QuotaApplicationSummary {
   quota_amount: number
   application_count: number
@@ -96,6 +101,7 @@ export interface QuotaApplicationSummary {
   rejected_quota: number
   rejected_count: number
   sales: QuotaApplicationSalesSummary[]
+  available_sales: QuotaApplicationSalesOption[]
   applications: QuotaApplication[]
 }
 

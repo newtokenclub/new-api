@@ -1,5 +1,8 @@
 {
   "translation": {
+    "All applications": "Tất cả yêu cầu",
+    "Outstanding payments": "Khoản chưa thu",
+    "No outstanding payments": "Không có khoản nào chưa thu",
     "Consumption data hidden": "Dữ liệu tiêu thụ đã được ẩn — nhấn để hiển thị",
     "360": "360",
     "1000": "1000",
@@ -102,8 +105,8 @@
     "Invoiceable CNY amount cannot be negative.": "Invoiceable CNY amount cannot be negative.",
     "Attachment upload failed": "Attachment upload failed",
     "Payment status": "Payment status",
-    "Paid": "Paid",
-    "Unpaid": "Unpaid",
+    "Paid": "Đã thanh toán",
+    "Unpaid": "Chưa thanh toán",
     "Invoice requirement": "Invoice requirement",
     "Invoice required": "Invoice required",
     "No invoice required": "No invoice required",
