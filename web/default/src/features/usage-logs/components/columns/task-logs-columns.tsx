@@ -207,8 +207,15 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
                 {sensitiveVisible ? getUserAvatarFallback(displayName) : '•'}
               </AvatarFallback>
             </Avatar>
-            <span className='text-muted-foreground truncate text-sm hover:underline'>
-              {sensitiveVisible ? displayName : '••••'}
+            <span className='flex min-w-0 flex-col'>
+              <span className='text-muted-foreground truncate text-sm hover:underline'>
+                {sensitiveVisible ? displayName : '••••'}
+              </span>
+              {sensitiveVisible && log.display_name && (
+                <span className='text-muted-foreground/70 max-w-[160px] truncate text-xs'>
+                  {log.display_name}
+                </span>
+              )}
             </span>
           </button>
         )

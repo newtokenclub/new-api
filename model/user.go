@@ -1198,6 +1198,26 @@ func GetUsernamesByIds(ids []int) (map[int]string, error) {
 	return result, nil
 }
 
+// GetUserDisplayNamesByIds returns display names keyed by user ID.
+func GetUserDisplayNamesByIds(ids []int) (map[int]string, error) {
+	result := make(map[int]string, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	var rows []struct {
+		Id          int
+		DisplayName string
+	}
+	if err := DB.Unscoped().Model(&User{}).Select("id, display_name").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		result[row.Id] = row.DisplayName
+	}
+	return result, nil
+}
+
 func IsLinuxDOIdAlreadyTaken(linuxDOId string) bool {
 	var user User
 	err := DB.Unscoped().Where("linux_do_id = ?", linuxDOId).First(&user).Error

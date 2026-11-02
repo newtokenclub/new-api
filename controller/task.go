@@ -127,6 +127,7 @@ func GetUserTaskStat(c *gin.Context) {
 
 func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 	var userIdMap map[int]*model.UserBase
+	var displayNameMap map[int]string
 	if fillUser {
 		userIdMap = make(map[int]*model.UserBase)
 		userIds := types.NewSet[int]()
@@ -139,6 +140,12 @@ func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 				userIdMap[userId] = cacheUser
 			}
 		}
+		var err error
+		displayNameMap, err = model.GetUserDisplayNamesByIds(userIds.Items())
+		if err != nil {
+			common.SysLog("failed to load task user display names: " + err.Error())
+			displayNameMap = map[int]string{}
+		}
 	}
 	result := make([]*dto.TaskDto, len(tasks))
 	for i, task := range tasks {
@@ -148,6 +155,9 @@ func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 			}
 		}
 		result[i] = relay.TaskModel2Dto(task)
+		if fillUser {
+			result[i].DisplayName = displayNameMap[task.UserId]
+		}
 	}
 	return result
 }
