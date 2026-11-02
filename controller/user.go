@@ -276,7 +276,8 @@ func Register(c *gin.Context) {
 
 func GetAllUsers(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
-	users, total, err := model.GetAllUsers(pageInfo)
+	sortBy, sortOrder := getUserListSort(c)
+	users, total, err := model.GetAllUsers(pageInfo, sortBy, sortOrder)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -313,7 +314,8 @@ func SearchUsers(c *gin.Context) {
 		}
 	}
 	pageInfo := common.GetPageQuery(c)
-	users, total, err := model.SearchUsers(keyword, group, role, status, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	sortBy, sortOrder := getUserListSort(c)
+	users, total, err := model.SearchUsers(keyword, group, role, status, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortBy, sortOrder)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -331,6 +333,17 @@ func SearchUsers(c *gin.Context) {
 		"total_quota_remaining": remainingQuota,
 	}})
 	return
+}
+
+func getUserListSort(c *gin.Context) (string, string) {
+	if c.Query("sort") != "quota" {
+		return "id", "desc"
+	}
+	order := strings.ToLower(c.Query("sort_order"))
+	if order != "asc" && order != "desc" {
+		order = "desc"
+	}
+	return "quota", order
 }
 
 func canManageTargetRole(myRole int, targetRole int) bool {

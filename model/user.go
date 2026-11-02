@@ -210,7 +210,7 @@ func GetMaxUserId() int {
 	return user.Id
 }
 
-func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err error) {
+func GetAllUsers(pageInfo *common.PageInfo, sortBy string, sortOrder string) (users []*User, total int64, err error) {
 	// Start transaction
 	tx := DB.Begin()
 	if tx.Error != nil {
@@ -230,7 +230,7 @@ func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err err
 	}
 
 	// Get paginated users within same transaction
-	err = tx.Unscoped().Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Omit("password", "access_token").Find(&users).Error
+	err = tx.Unscoped().Order(userListOrder(sortBy, sortOrder)).Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Omit("password", "access_token").Find(&users).Error
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, err
@@ -252,7 +252,7 @@ func GetTotalQuotaRemaining() (int64, error) {
 	return total, err
 }
 
-func SearchUsers(keyword string, group string, role *int, status *int, startIdx int, num int) ([]*User, int64, error) {
+func SearchUsers(keyword string, group string, role *int, status *int, startIdx int, num int, sortBy string, sortOrder string) ([]*User, int64, error) {
 	var users []*User
 	var total int64
 	var err error
@@ -312,7 +312,7 @@ func SearchUsers(keyword string, group string, role *int, status *int, startIdx 
 	}
 
 	// 获取分页数据
-	err = query.Omit("password", "access_token").Order("id desc").Limit(num).Offset(startIdx).Find(&users).Error
+	err = query.Omit("password", "access_token").Order(userListOrder(sortBy, sortOrder)).Limit(num).Offset(startIdx).Find(&users).Error
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, err
@@ -324,6 +324,16 @@ func SearchUsers(keyword string, group string, role *int, status *int, startIdx 
 	}
 
 	return users, total, nil
+}
+
+func userListOrder(sortBy string, sortOrder string) string {
+	if sortBy != "quota" {
+		return "id desc"
+	}
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "desc"
+	}
+	return "quota " + sortOrder + ", id desc"
 }
 
 func GetUserById(id int, selectAll bool) (*User, error) {

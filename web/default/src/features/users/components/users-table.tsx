@@ -18,6 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
+import type { OnChangeFn, SortingState } from '@tanstack/react-table'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -54,6 +56,7 @@ export function UsersTable() {
   const columns = useUsersColumns()
   const { refreshTrigger } = useUsers()
   const isMobile = useMediaQuery('(max-width: 640px)')
+  const [sorting, setSorting] = useState<SortingState>([])
 
   const {
     globalFilter,
@@ -85,6 +88,23 @@ export function UsersTable() {
   const groupFilter =
     (columnFilters.find((filter) => filter.id === 'group')?.value as string) ??
     ''
+  const activeSort = sorting[0]
+  const sortParams =
+    activeSort?.id === 'quota'
+      ? {
+          sort: 'quota' as const,
+          sort_order: activeSort.desc ? ('desc' as const) : ('asc' as const),
+        }
+      : {}
+  const handleSortingChange: OnChangeFn<SortingState> = (updater) => {
+    setSorting((previous) => {
+      const next = typeof updater === 'function' ? updater(previous) : updater
+      if (pagination.pageIndex > 0) {
+        onPaginationChange({ ...pagination, pageIndex: 0 })
+      }
+      return next
+    })
+  }
 
   // Fetch data with React Query
   const { data, isLoading, isFetching } = useQuery({
@@ -96,6 +116,7 @@ export function UsersTable() {
       statusFilter,
       roleFilter,
       groupFilter,
+      sortParams,
       refreshTrigger,
     ],
     queryFn: async () => {
@@ -105,6 +126,7 @@ export function UsersTable() {
       const params = {
         p: pagination.pageIndex + 1,
         page_size: pagination.pageSize,
+        ...sortParams,
       }
 
       const result =
@@ -143,6 +165,7 @@ export function UsersTable() {
     columnFilters,
     globalFilter,
     pagination,
+    sorting,
     globalFilterFn: (row, _columnId, filterValue) => {
       const searchValue = String(filterValue).toLowerCase()
       const fields = [
@@ -157,9 +180,11 @@ export function UsersTable() {
       )
     },
     onPaginationChange,
+    onSortingChange: handleSortingChange,
     onGlobalFilterChange,
     onColumnFiltersChange,
     manualPagination: true,
+    manualSorting: true,
     manualFiltering: true,
     totalCount: data?.total || 0,
     ensurePageInRange,
