@@ -35,11 +35,10 @@ export async function getUserConsumption(
   start_timestamp: number,
   end_timestamp: number
 ) {
-  const res = await api.get('/api/data', {
+  const res = await api.get(`/api/data/user/${encodeURIComponent(username)}`, {
     params: {
       start_timestamp,
       end_timestamp,
-      username,
       include_group: true,
     },
   })

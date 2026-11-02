@@ -33,7 +33,7 @@ import type {
 // ----------------------------------------------------------------------------
 
 // Get user quota data within a time range
-// Admin users get all users' data by default (matching classic frontend behavior)
+// Root administrators can query all users; other users get their own data.
 export async function getUserQuotaDates(
   params: {
     start_timestamp: number
@@ -41,9 +41,9 @@ export async function getUserQuotaDates(
     default_time?: string
     username?: string
   },
-  isAdmin = false
+  canViewAllUsers = false
 ) {
-  const endpoint = isAdmin ? '/api/data' : '/api/data/self'
+  const endpoint = canViewAllUsers ? '/api/data' : '/api/data/self'
   const res = await api.get<{ success: boolean; data: QuotaDataItem[] }>(
     endpoint,
     { params: { ...params, include_group: true } }
@@ -73,9 +73,9 @@ export async function getFlowQuotaDates(
     default_time?: string
     username?: string
   },
-  isAdmin = false
+  canViewAllUsers = false
 ) {
-  const endpoint = isAdmin ? '/api/data/flow' : '/api/data/flow/self'
+  const endpoint = canViewAllUsers ? '/api/data/flow' : '/api/data/flow/self'
   const res = await api.get<{
     success: boolean
     data?: FlowQuotaDataItem[]
