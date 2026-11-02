@@ -157,6 +157,10 @@ export function UsersTable() {
   })
 
   const users = data?.items || []
+  const currentPageQuotaRemaining = users.reduce(
+    (total, user) => total + user.quota,
+    0
+  )
 
   const { table } = useDataTable({
     data: users,
@@ -192,10 +196,18 @@ export function UsersTable() {
 
   return (
     <div className='flex h-full min-h-0 flex-col gap-2'>
-      <div className='text-muted-foreground px-1 text-sm'>
-        {t('Total remaining quota')}:{' '}
-        <span className='text-foreground font-semibold'>
-          {formatQuota(data?.totalQuotaRemaining || 0)}
+      <div className='text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 px-1 text-sm'>
+        <span>
+          {t('Total remaining quota')}:{' '}
+          <span className='text-foreground font-semibold'>
+            {formatQuota(data?.totalQuotaRemaining || 0)}
+          </span>
+        </span>
+        <span>
+          {t('Current page remaining quota')}:{' '}
+          <span className='text-foreground font-semibold'>
+            {formatQuota(currentPageQuotaRemaining)}
+          </span>
         </span>
       </div>
       <div className='min-h-0 flex-1'>

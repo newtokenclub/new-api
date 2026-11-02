@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Total remaining quota": "残りクォータ合計",
+    "Current page remaining quota": "現在のページの残りクォータ",
     "All applications": "すべての申請",
     "Outstanding payments": "未回収金額",
     "No outstanding payments": "未回収の申請はありません",

@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Total remaining quota": "Quota restant total",
+    "Current page remaining quota": "Quota restant de la page actuelle",
     "All applications": "Toutes les demandes",
     "Outstanding payments": "Paiements en attente",
     "No outstanding payments": "Aucun paiement en attente",

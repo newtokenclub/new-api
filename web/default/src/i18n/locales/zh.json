@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Total remaining quota": "全部用户剩余额度",
+    "Current page remaining quota": "当前页剩余额度",
     "All applications": "全部申请",
     "Outstanding payments": "待回款额度",
     "No outstanding payments": "暂无待回款申请",

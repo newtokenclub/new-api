@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Total remaining quota": "Общий остаток квоты",
+    "Current page remaining quota": "Остаток квоты на текущей странице",
     "All applications": "Все заявки",
     "Outstanding payments": "Ожидаемые платежи",
     "No outstanding payments": "Нет ожидаемых платежей",
