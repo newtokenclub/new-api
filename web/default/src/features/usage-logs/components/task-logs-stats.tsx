@@ -21,7 +21,7 @@ import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Skeleton } from '@/components/ui/skeleton'
-import { useIsAdmin } from '@/hooks/use-admin'
+import { useIsRoot } from '@/hooks/use-root'
 import { formatLogQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -52,22 +52,26 @@ function StatBadge(props: { label: string; value: string; accent: string }) {
 
 export function TaskLogsStats() {
   const { t } = useTranslation()
-  const isAdmin = useIsAdmin()
+  const isRoot = useIsRoot()
   const searchParams = route.useSearch()
   const { sensitiveVisible } = useUsageLogsContext()
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['task-logs-stats', isAdmin, searchParams],
+    queryKey: ['task-logs-stats', isRoot, searchParams],
     queryFn: async () => {
-      const params = buildTaskStatParams({ searchParams, isAdmin })
-      const result = isAdmin
+      const params = buildTaskStatParams({
+        searchParams,
+        canViewAllLogs: isRoot,
+      })
+      const result = isRoot
         ? await getTaskLogStats(params)
         : await getUserTaskLogStats(params)
       return result.success
         ? result.data || DEFAULT_TASK_STATS
         : DEFAULT_TASK_STATS
     },
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[1] === isRoot ? previousData : undefined,
   })
 
   if (isLoading) {

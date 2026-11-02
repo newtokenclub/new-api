@@ -389,7 +389,7 @@ export interface GetTaskLogStatsResponse {
  */
 export interface FetchLogsConfig {
   logCategory: LogCategory
-  isAdmin: boolean
+  canViewAllLogs: boolean
   page: number
   pageSize: number
   searchParams: Record<string, unknown>

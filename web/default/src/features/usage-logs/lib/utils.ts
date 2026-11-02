@@ -176,9 +176,15 @@ export function buildApiParams(config: {
   pageSize: number
   searchParams: Record<string, unknown>
   columnFilters?: Array<{ id: string; value: unknown }>
-  isAdmin: boolean
+  canViewAllLogs: boolean
 }): GetLogsParams {
-  const { page, pageSize, searchParams, columnFilters = [], isAdmin } = config
+  const {
+    page,
+    pageSize,
+    searchParams,
+    columnFilters = [],
+    canViewAllLogs,
+  } = config
 
   // Helper to process type parameter (single value from array)
   const processType = (value: unknown): number | undefined => {
@@ -204,10 +210,10 @@ export function buildApiParams(config: {
     ...(searchParams.model ? { model_name: String(searchParams.model) } : {}),
     ...(searchParams.token ? { token_name: String(searchParams.token) } : {}),
     ...(searchParams.group ? { group: String(searchParams.group) } : {}),
-    ...(isAdmin && searchParams.channel
+    ...(canViewAllLogs && searchParams.channel
       ? { channel: Number(searchParams.channel) || 0 }
       : {}),
-    ...(isAdmin && searchParams.username
+    ...(canViewAllLogs && searchParams.username
       ? { username: String(searchParams.username) }
       : {}),
     ...(searchParams.requestId
@@ -238,10 +244,10 @@ export function buildApiParams(config: {
           params.group = String(value)
           break
         case 'channel':
-          if (isAdmin) params.channel = Number(value) || 0
+          if (canViewAllLogs) params.channel = Number(value) || 0
           break
         case 'username':
-          if (isAdmin) params.username = String(value)
+          if (canViewAllLogs) params.username = String(value)
           break
       }
     })
@@ -255,16 +261,16 @@ export function buildApiParams(config: {
  */
 export function buildTaskStatParams(config: {
   searchParams: Record<string, unknown>
-  isAdmin: boolean
+  canViewAllLogs: boolean
 }): GetTaskLogStatsParams {
-  const { searchParams, isAdmin } = config
+  const { searchParams, canViewAllLogs } = config
   return {
-    ...(searchParams.channel
+    ...(canViewAllLogs && searchParams.channel
       ? { channel_id: String(searchParams.channel) }
       : {}),
     ...(searchParams.filter ? { task_id: String(searchParams.filter) } : {}),
     ...(searchParams.model ? { model_name: String(searchParams.model) } : {}),
-    ...(isAdmin && searchParams.username
+    ...(canViewAllLogs && searchParams.username
       ? { username: String(searchParams.username) }
       : {}),
     ...buildTimeRangeParams(searchParams, false),
@@ -281,8 +287,14 @@ export function buildTaskStatParams(config: {
 export async function fetchLogsByCategory(
   config: FetchLogsConfig
 ): Promise<GetLogsResponse> {
-  const { logCategory, isAdmin, page, pageSize, searchParams, columnFilters } =
-    config
+  const {
+    logCategory,
+    canViewAllLogs,
+    page,
+    pageSize,
+    searchParams,
+    columnFilters,
+  } = config
 
   if (logCategory === 'common') {
     const params = buildApiParams({
@@ -290,9 +302,11 @@ export async function fetchLogsByCategory(
       pageSize,
       searchParams,
       columnFilters,
-      isAdmin,
+      canViewAllLogs,
     })
-    return isAdmin ? await getAllLogs(params) : await getUserLogs(params)
+    return canViewAllLogs
+      ? await getAllLogs(params)
+      : await getUserLogs(params)
   }
 
   // For drawing and task logs
@@ -314,7 +328,7 @@ export async function fetchLogsByCategory(
           ...(searchParams.model
             ? { model_name: String(searchParams.model) }
             : {}),
-          ...(isAdmin && searchParams.username
+          ...(canViewAllLogs && searchParams.username
             ? { username: String(searchParams.username) }
             : {}),
         }
@@ -322,13 +336,13 @@ export async function fetchLogsByCategory(
   }
 
   if (logCategory === 'drawing') {
-    return isAdmin
+    return canViewAllLogs
       ? await getAllMidjourneyLogs(paramsWithFilter as GetMidjourneyLogsParams)
       : await getUserMidjourneyLogs(paramsWithFilter as GetMidjourneyLogsParams)
   }
 
   // task logs
-  return isAdmin
+  return canViewAllLogs
     ? await getAllTaskLogs(paramsWithFilter as GetTaskLogsParams)
     : await getUserTaskLogs(paramsWithFilter as GetTaskLogsParams)
 }

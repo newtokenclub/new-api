@@ -23,6 +23,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useIsAdmin } from '@/hooks/use-admin'
+import { useIsRoot } from '@/hooks/use-root'
 
 import { buildSearchParams } from '../lib/filter'
 import { getDefaultTimeRange } from '../lib/utils'
@@ -72,6 +73,8 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
   const queryClient = useQueryClient()
   const searchParams = route.useSearch()
   const isAdmin = useIsAdmin()
+  const isRoot = useIsRoot()
+  const canViewAllLogs = props.logCategory === 'drawing' ? isAdmin : isRoot
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
 
   const [filters, setFilters] = useState<TaskLogsFilters>(() => {
@@ -221,7 +224,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
     </LogsFilterField>
   ) : null
   const usernameFilter =
-    isTask && isAdmin ? (
+    isTask && isRoot ? (
       <LogsFilterField>
         <LogsFilterInput
           placeholder={t('Username')}
@@ -231,7 +234,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
         />
       </LogsFilterField>
     ) : null
-  const channelFilter = isAdmin ? (
+  const channelFilter = canViewAllLogs ? (
     <LogsFilterField>
       <LogsFilterInput
         placeholder={t('Channel ID')}

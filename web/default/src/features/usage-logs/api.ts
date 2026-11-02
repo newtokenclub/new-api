@@ -35,14 +35,14 @@ import type {
 // Generic API Helpers
 // ============================================================================
 
-function buildApiPath(endpoint: string, isAdmin: boolean): string {
-  return isAdmin ? endpoint : `${endpoint}/self`
+function buildApiPath(endpoint: string, canViewAllLogs: boolean): string {
+  return canViewAllLogs ? endpoint : `${endpoint}/self`
 }
 
 async function fetchLogs<T>(
   endpoint: string,
   params: T,
-  isAdmin: boolean
+  canViewAllLogs: boolean
 ): Promise<GetLogsResponse> {
   const paramRecord = params as unknown as Record<string, unknown>
   const queryParams = buildQueryParams({
@@ -50,7 +50,7 @@ async function fetchLogs<T>(
     page_size: paramRecord.page_size || 20,
     ...params,
   })
-  const path = buildApiPath(endpoint, isAdmin)
+  const path = buildApiPath(endpoint, canViewAllLogs)
   const res = await api.get(`${path}?${queryParams}`)
   return res.data
 }
@@ -58,12 +58,12 @@ async function fetchLogs<T>(
 async function fetchLogStats<T>(
   endpoint: string,
   params: T,
-  isAdmin: boolean
+  canViewAllLogs: boolean
 ): Promise<GetLogStatsResponse> {
   const queryParams = buildQueryParams(
     params as unknown as Record<string, unknown>
   )
-  const path = buildApiPath(endpoint, isAdmin)
+  const path = buildApiPath(endpoint, canViewAllLogs)
   const res = await api.get(`${path}/stat?${queryParams}`)
   return res.data
 }
@@ -115,12 +115,12 @@ export const getUserTaskLogs = (params: GetTaskLogsParams) =>
 
 async function fetchTaskLogStats(
   params: GetTaskLogStatsParams,
-  isAdmin: boolean
+  canViewAllLogs: boolean
 ): Promise<GetTaskLogStatsResponse> {
   const queryParams = buildQueryParams(
     params as unknown as Record<string, unknown>
   )
-  const path = isAdmin ? '/api/task/stat' : '/api/task/self/stat'
+  const path = canViewAllLogs ? '/api/task/stat' : '/api/task/self/stat'
   const res = await api.get(`${path}?${queryParams}`)
   return res.data
 }
