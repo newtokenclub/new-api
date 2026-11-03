@@ -22,6 +22,13 @@ import { type Table } from '@tanstack/react-table'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useIsAdmin } from '@/hooks/use-admin'
 import { useIsRoot } from '@/hooks/use-root'
 
@@ -106,6 +113,9 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
             ...(searchParams.username
               ? { username: searchParams.username }
               : {}),
+            ...(searchParams.status
+              ? { status: String(searchParams.status) }
+              : {}),
           }
 
     setFilters(next)
@@ -117,6 +127,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
     searchParams.filter,
     searchParams.model,
     searchParams.username,
+    searchParams.status,
   ])
 
   const handleChange = useCallback(
@@ -189,7 +200,8 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
   const hasAdditionalFilters =
     !!filterValue ||
     !!filters.channel ||
-    (isTask && (!!taskFilters.model || !!taskFilters.username))
+    (isTask &&
+      (!!taskFilters.model || !!taskFilters.username || !!taskFilters.status))
   const dateRangeFilter = (
     <LogsFilterField wide>
       <CompactDateTimeRangePicker
@@ -234,6 +246,34 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
         />
       </LogsFilterField>
     ) : null
+  const statusFilter = isTask ? (
+    <LogsFilterField>
+      <Select
+        value={taskFilters.status || 'all'}
+        onValueChange={(value) =>
+          setFilters((prev) => ({
+            ...prev,
+            status: value && value !== 'all' ? value : undefined,
+          }))
+        }
+      >
+        <SelectTrigger aria-label={t('Task status')}>
+          <SelectValue>
+            {taskFilters.status === 'SUCCESS'
+              ? t('Successful tasks')
+              : taskFilters.status === 'FAILURE'
+                ? t('Failed tasks')
+                : t('All task statuses')}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value='all'>{t('All task statuses')}</SelectItem>
+          <SelectItem value='SUCCESS'>{t('Successful tasks')}</SelectItem>
+          <SelectItem value='FAILURE'>{t('Failed tasks')}</SelectItem>
+        </SelectContent>
+      </Select>
+    </LogsFilterField>
+  ) : null
   const channelFilter = canViewAllLogs ? (
     <LogsFilterField>
       <LogsFilterInput
@@ -256,6 +296,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
     filters.channel,
     isTask ? taskFilters.model : undefined,
     isTask ? taskFilters.username : undefined,
+    isTask ? taskFilters.status : undefined,
   ].filter(Boolean).length
 
   return (
@@ -268,6 +309,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
           {taskIdFilter}
           {modelFilter}
           {usernameFilter}
+          {statusFilter}
           {channelFilter}
         </>
       }
@@ -277,6 +319,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
           {taskIdFilter}
           {modelFilter}
           {usernameFilter}
+          {statusFilter}
           {channelFilter}
         </>
       }

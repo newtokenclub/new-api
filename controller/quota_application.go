@@ -91,7 +91,13 @@ func UploadQuotaApplicationAttachment(c *gin.Context) {
 }
 
 func quotaApplicationAttachmentKey(c *gin.Context, fileName string) string {
-	return fmt.Sprintf("quota-applications/%d/%d-%d-%s", time.Now().UTC().Year(), c.GetInt("id"), time.Now().UnixNano(), strings.ReplaceAll(filepath.Base(fileName), " ", "_"))
+	extension := strings.ToLower(filepath.Ext(fileName))
+	switch extension {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".avif", ".heic", ".svg":
+	default:
+		extension = ""
+	}
+	return fmt.Sprintf("quota-applications/%d/%d-%d%s", time.Now().UTC().Year(), c.GetInt("id"), time.Now().UnixNano(), extension)
 }
 
 type reviewQuotaApplicationRequest struct {

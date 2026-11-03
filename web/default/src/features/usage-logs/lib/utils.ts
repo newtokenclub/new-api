@@ -273,6 +273,7 @@ export function buildTaskStatParams(config: {
     ...(canViewAllLogs && searchParams.username
       ? { username: String(searchParams.username) }
       : {}),
+    ...(searchParams.status ? { status: String(searchParams.status) } : {}),
     ...buildTimeRangeParams(searchParams, false),
   }
 }
@@ -330,6 +331,9 @@ export async function fetchLogsByCategory(
             : {}),
           ...(canViewAllLogs && searchParams.username
             ? { username: String(searchParams.username) }
+            : {}),
+          ...(searchParams.status
+            ? { status: String(searchParams.status) }
             : {}),
         }
       : {}),

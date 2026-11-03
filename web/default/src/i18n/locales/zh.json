@@ -5635,6 +5635,10 @@
     "Search username": "搜索用户名",
     "Created at": "创建时间",
     "Last login": "最后登录",
-    "Consumption": "消费"
+    "Consumption": "消费",
+    "Task status": "任务状态",
+    "All task statuses": "全部任务状态",
+    "Successful tasks": "成功任务",
+    "Failed tasks": "失败任务"
   }
 }

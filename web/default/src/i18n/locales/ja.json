@@ -5635,6 +5635,10 @@
     "Search username": "Search username",
     "Created at": "Created at",
     "Last login": "Last login",
-    "Consumption": "Consumption"
+    "Consumption": "Consumption",
+    "Task status": "タスクの状態",
+    "All task statuses": "すべてのタスク状態",
+    "Successful tasks": "成功したタスク",
+    "Failed tasks": "失敗したタスク"
   }
 }

@@ -5635,6 +5635,10 @@
     "Search username": "Search username",
     "Created at": "Created at",
     "Last login": "Last login",
-    "Consumption": "Consumption"
+    "Consumption": "Consumption",
+    "Task status": "Task status",
+    "All task statuses": "All task statuses",
+    "Successful tasks": "Successful tasks",
+    "Failed tasks": "Failed tasks"
   }
 }
