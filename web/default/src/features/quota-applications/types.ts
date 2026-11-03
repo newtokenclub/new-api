@@ -22,6 +22,7 @@ export interface QuotaApplication {
   id: number
   applicant_id: number
   applicant_username: string
+  applicant_display_name?: string
   target_user_id: number
   target_username: string
   target_display_name: string
@@ -69,6 +70,7 @@ export interface QuotaApplicationList {
 export interface QuotaApplicationSalesSummary {
   applicant_id: number
   applicant_username: string
+  applicant_display_name?: string
   quota_amount: number
   application_count: number
   customer_count: number
@@ -84,6 +86,7 @@ export interface QuotaApplicationSalesSummary {
 export interface QuotaApplicationSalesOption {
   applicant_id: number
   applicant_username: string
+  applicant_display_name?: string
 }
 
 export interface QuotaApplicationSummary {

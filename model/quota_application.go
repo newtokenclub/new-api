@@ -16,28 +16,29 @@ const (
 )
 
 type QuotaApplication struct {
-	Id                 int    `json:"id"`
-	ApplicantId        int    `json:"applicant_id" gorm:"index;not null"`
-	ApplicantUsername  string `json:"applicant_username" gorm:"->;-:migration"`
-	TargetUserId       int    `json:"target_user_id" gorm:"index;not null"`
-	TargetUsername     string `json:"target_username" gorm:"->;-:migration"`
-	TargetDisplayName  string `json:"target_display_name" gorm:"->;-:migration"`
-	QuotaAmount        int    `json:"quota_amount" gorm:"not null"`
-	InvoiceAmountCents int64  `json:"invoice_amount_cents" gorm:"not null"`
-	PaymentStatus      string `json:"payment_status" gorm:"type:varchar(16);index;not null;default:unpaid"`
-	IsTestAmount       bool   `json:"is_test_amount" gorm:"index;not null;default:false"`
-	InvoiceRequired    bool   `json:"invoice_required" gorm:"index;not null;default:false"`
-	ApplicationInfo    string `json:"application_info" gorm:"type:text;not null"`
-	Status             string `json:"status" gorm:"type:varchar(16);index;not null"`
-	ReviewedBy         int    `json:"reviewed_by" gorm:"index"`
-	ReviewerUsername   string `json:"reviewer_username" gorm:"->;-:migration"`
-	ReviewComment      string `json:"review_comment" gorm:"type:varchar(500)"`
-	QuotaBefore        int    `json:"quota_before"`
-	QuotaAfter         int    `json:"quota_after"`
-	CreatedAt          int64  `json:"created_at" gorm:"autoCreateTime;index"`
-	ReviewedAt         int64  `json:"reviewed_at"`
-	UpdatedAt          int64  `json:"updated_at" gorm:"autoUpdateTime"`
-	Attachments        []QuotaApplicationAttachment `json:"attachments,omitempty" gorm:"-"`
+	Id                   int    `json:"id"`
+	ApplicantId          int    `json:"applicant_id" gorm:"index;not null"`
+	ApplicantUsername    string `json:"applicant_username" gorm:"->;-:migration"`
+	ApplicantDisplayName string `json:"applicant_display_name" gorm:"->;-:migration"`
+	TargetUserId         int    `json:"target_user_id" gorm:"index;not null"`
+	TargetUsername       string `json:"target_username" gorm:"->;-:migration"`
+	TargetDisplayName    string `json:"target_display_name" gorm:"->;-:migration"`
+	QuotaAmount          int    `json:"quota_amount" gorm:"not null"`
+	InvoiceAmountCents   int64  `json:"invoice_amount_cents" gorm:"not null"`
+	PaymentStatus        string `json:"payment_status" gorm:"type:varchar(16);index;not null;default:unpaid"`
+	IsTestAmount         bool   `json:"is_test_amount" gorm:"index;not null;default:false"`
+	InvoiceRequired      bool   `json:"invoice_required" gorm:"index;not null;default:false"`
+	ApplicationInfo      string `json:"application_info" gorm:"type:text;not null"`
+	Status               string `json:"status" gorm:"type:varchar(16);index;not null"`
+	ReviewedBy           int    `json:"reviewed_by" gorm:"index"`
+	ReviewerUsername     string `json:"reviewer_username" gorm:"->;-:migration"`
+	ReviewComment        string `json:"review_comment" gorm:"type:varchar(500)"`
+	QuotaBefore          int    `json:"quota_before"`
+	QuotaAfter           int    `json:"quota_after"`
+	CreatedAt            int64  `json:"created_at" gorm:"autoCreateTime;index"`
+	ReviewedAt           int64  `json:"reviewed_at"`
+	UpdatedAt            int64  `json:"updated_at" gorm:"autoUpdateTime"`
+	Attachments          []QuotaApplicationAttachment `json:"attachments,omitempty" gorm:"-"`
 }
 
 type QuotaApplicationTarget struct {
@@ -48,22 +49,24 @@ type QuotaApplicationTarget struct {
 }
 
 type QuotaApplicationSalesSummary struct {
-	ApplicantId       int    `json:"applicant_id"`
-	ApplicantUsername string `json:"applicant_username"`
-	QuotaAmount       int64  `json:"quota_amount"`
-	ApplicationCount  int64  `json:"application_count"`
-	CustomerCount     int64  `json:"customer_count"`
-	InvoiceAmount     int64  `json:"invoice_amount_cents"`
-	PaidQuota         int64  `json:"paid_quota"`
-	UnpaidQuota       int64  `json:"unpaid_quota"`
-	UnpaidCount       int64  `json:"unpaid_count"`
-	TestQuota         int64  `json:"test_quota"`
-	TestCount         int64  `json:"test_count"`
+	ApplicantId          int    `json:"applicant_id"`
+	ApplicantUsername    string `json:"applicant_username"`
+	ApplicantDisplayName string `json:"applicant_display_name"`
+	QuotaAmount          int64  `json:"quota_amount"`
+	ApplicationCount     int64  `json:"application_count"`
+	CustomerCount        int64  `json:"customer_count"`
+	InvoiceAmount        int64  `json:"invoice_amount_cents"`
+	PaidQuota            int64  `json:"paid_quota"`
+	UnpaidQuota          int64  `json:"unpaid_quota"`
+	UnpaidCount          int64  `json:"unpaid_count"`
+	TestQuota            int64  `json:"test_quota"`
+	TestCount            int64  `json:"test_count"`
 }
 
 type QuotaApplicationSalesOption struct {
-	ApplicantId       int    `json:"applicant_id"`
-	ApplicantUsername string `json:"applicant_username"`
+	ApplicantId          int    `json:"applicant_id"`
+	ApplicantUsername    string `json:"applicant_username"`
+	ApplicantDisplayName string `json:"applicant_display_name"`
 }
 
 type QuotaApplicationSummary struct {
@@ -105,7 +108,7 @@ func GetQuotaApplicationSummary(applicantId *int, from, to int64) (*QuotaApplica
 	availableSalesQuery := DB.Table("quota_applications AS qa").
 		Joins("LEFT JOIN users AS applicant ON applicant.id = qa.applicant_id").
 		Where(period, args...).
-		Select("DISTINCT qa.applicant_id, applicant.username AS applicant_username").
+		Select("DISTINCT qa.applicant_id, applicant.username AS applicant_username, applicant.display_name AS applicant_display_name").
 		Order("applicant.username ASC, qa.applicant_id ASC")
 	var availableSales []QuotaApplicationSalesOption
 	if err := availableSalesQuery.Scan(&availableSales).Error; err != nil {
@@ -125,9 +128,9 @@ func GetQuotaApplicationSummary(applicantId *int, from, to int64) (*QuotaApplica
 	result.CustomerCount = customerCount
 
 	salesQuery := base.Where("qa.status = ?", QuotaApplicationStatusApproved).
-		Select("qa.applicant_id, applicant.username AS applicant_username, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 THEN qa.quota_amount ELSE 0 END), 0) AS quota_amount, COUNT(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 THEN 1 END) AS application_count, COUNT(DISTINCT qa.target_user_id) AS customer_count, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND qa.payment_status = 'paid' THEN qa.quota_amount ELSE 0 END), 0) AS paid_quota, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND qa.payment_status = 'unpaid' THEN qa.quota_amount ELSE 0 END), 0) AS unpaid_quota, COUNT(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND qa.payment_status = 'unpaid' THEN 1 END) AS unpaid_count, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 1 THEN qa.quota_amount ELSE 0 END), 0) AS test_quota, COUNT(CASE WHEN COALESCE(qa.is_test_amount, 0) = 1 THEN 1 END) AS test_count, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND (COALESCE(qa.invoice_required, 0) = 1 OR qa.invoice_amount_cents > 0) THEN qa.invoice_amount_cents ELSE 0 END), 0) AS invoice_amount").
+		Select("qa.applicant_id, applicant.username AS applicant_username, applicant.display_name AS applicant_display_name, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 THEN qa.quota_amount ELSE 0 END), 0) AS quota_amount, COUNT(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 THEN 1 END) AS application_count, COUNT(DISTINCT qa.target_user_id) AS customer_count, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND qa.payment_status = 'paid' THEN qa.quota_amount ELSE 0 END), 0) AS paid_quota, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND qa.payment_status = 'unpaid' THEN qa.quota_amount ELSE 0 END), 0) AS unpaid_quota, COUNT(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND qa.payment_status = 'unpaid' THEN 1 END) AS unpaid_count, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 1 THEN qa.quota_amount ELSE 0 END), 0) AS test_quota, COUNT(CASE WHEN COALESCE(qa.is_test_amount, 0) = 1 THEN 1 END) AS test_count, COALESCE(SUM(CASE WHEN COALESCE(qa.is_test_amount, 0) = 0 AND (COALESCE(qa.invoice_required, 0) = 1 OR qa.invoice_amount_cents > 0) THEN qa.invoice_amount_cents ELSE 0 END), 0) AS invoice_amount").
 		Joins("LEFT JOIN users AS applicant ON applicant.id = qa.applicant_id").
-		Group("qa.applicant_id, applicant.username").Order("quota_amount DESC")
+		Group("qa.applicant_id, applicant.username, applicant.display_name").Order("quota_amount DESC")
 	if err := salesQuery.Scan(&result.Sales).Error; err != nil {
 		return nil, err
 	}
@@ -152,7 +155,7 @@ func ListQuotaApplicationReconciliationItems(applicantId *int, from, to int64, u
 			QuotaApplicationStatusApproved, "unpaid", false)
 	}
 	var applications []QuotaApplication
-	err := query.Select("qa.*, applicant.username AS applicant_username, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").
+	err := query.Select("qa.*, applicant.username AS applicant_username, applicant.display_name AS applicant_display_name, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").
 		Order("qa.reviewed_at DESC, qa.id DESC").Limit(500).Scan(&applications).Error
 	if applications == nil {
 		applications = []QuotaApplication{}
@@ -256,7 +259,7 @@ func ListQuotaApplications(applicantId *int, status, paymentStatus, testAmount, 
 		return nil, 0, err
 	}
 	var applications []QuotaApplication
-	err := query.Select("qa.*, applicant.username AS applicant_username, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").
+	err := query.Select("qa.*, applicant.username AS applicant_username, applicant.display_name AS applicant_display_name, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").
 		Order("qa.id DESC").Offset(offset).Limit(limit).Scan(&applications).Error
 	for i := range applications { DB.Where("application_id = ?", applications[i].Id).Order("sort_order ASC, id ASC").Find(&applications[i].Attachments) }
 	return applications, total, err
@@ -264,7 +267,7 @@ func ListQuotaApplications(applicantId *int, status, paymentStatus, testAmount, 
 
 func GetQuotaApplication(id int, applicantId *int) (*QuotaApplication, error) {
 	query := DB.Table("quota_applications AS qa").
-		Select("qa.*, applicant.username AS applicant_username, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").
+		Select("qa.*, applicant.username AS applicant_username, applicant.display_name AS applicant_display_name, target.username AS target_username, target.display_name AS target_display_name, reviewer.username AS reviewer_username").
 		Joins("LEFT JOIN users AS applicant ON applicant.id = qa.applicant_id").
 		Joins("LEFT JOIN users AS target ON target.id = qa.target_user_id").
 		Joins("LEFT JOIN users AS reviewer ON reviewer.id = qa.reviewed_by").

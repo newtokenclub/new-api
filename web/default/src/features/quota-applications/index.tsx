@@ -79,6 +79,19 @@ import type {
   QuotaApplicationTarget,
 } from './types'
 
+function UserIdentity(props: { username: string; displayName?: string }) {
+  return (
+    <span className='flex min-w-0 flex-col'>
+      <span className='truncate font-medium'>{props.username}</span>
+      {props.displayName && (
+        <span className='text-muted-foreground truncate text-xs'>
+          {props.displayName}
+        </span>
+      )}
+    </span>
+  )
+}
+
 function getReconciliationRange(startValue: string, endValue: string) {
   const start = new Date(`${startValue}T00:00:00`)
   const end = new Date(`${endValue}T00:00:00`)
@@ -218,7 +231,10 @@ function ReconciliationView(props: { isRoot: boolean }) {
                   key={sale.applicant_id}
                   value={String(sale.applicant_id)}
                 >
-                  {sale.applicant_username}
+                  <UserIdentity
+                    username={sale.applicant_username}
+                    displayName={sale.applicant_display_name}
+                  />
                 </SelectItem>
               ))}
             </SelectContent>
@@ -288,7 +304,12 @@ function ReconciliationView(props: { isRoot: boolean }) {
             <TableBody>
               {summary.sales.map((sale) => (
                 <TableRow key={sale.applicant_id}>
-                  <TableCell>{sale.applicant_username}</TableCell>
+                  <TableCell>
+                    <UserIdentity
+                      username={sale.applicant_username}
+                      displayName={sale.applicant_display_name}
+                    />
+                  </TableCell>
                   <TableCell>{formatQuota(sale.quota_amount)}</TableCell>
                   <TableCell>{sale.customer_count}</TableCell>
                   <TableCell>{sale.application_count}</TableCell>
@@ -335,12 +356,25 @@ function ReconciliationView(props: { isRoot: boolean }) {
               reconciliationApplications.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
-                    {props.isRoot
-                      ? item.applicant_username
-                      : item.target_username}
+                    {props.isRoot ? (
+                      <UserIdentity
+                        username={item.applicant_username}
+                        displayName={item.applicant_display_name}
+                      />
+                    ) : (
+                      <UserIdentity
+                        username={item.target_username}
+                        displayName={item.target_display_name}
+                      />
+                    )}
                   </TableCell>
                   {props.isRoot && (
-                    <TableCell>{item.target_username}</TableCell>
+                    <TableCell>
+                      <UserIdentity
+                        username={item.target_username}
+                        displayName={item.target_display_name}
+                      />
+                    </TableCell>
                   )}
                   <TableCell className='font-medium'>
                     {formatQuota(item.quota_amount)}
@@ -420,15 +454,18 @@ function ApplicationDetails(props: {
             </div>
             <div>
               <p className='text-muted-foreground'>{t('Applicant')}</p>
-              <p className='font-medium'>{item.applicant_username}</p>
+              <UserIdentity
+                username={item.applicant_username}
+                displayName={item.applicant_display_name}
+              />
             </div>
             <div>
               <p className='text-muted-foreground'>{t('Target user')}</p>
-              <p className='font-medium'>{item.target_username}</p>
-              <p className='text-muted-foreground'>
-                {item.target_display_name && `${item.target_display_name} · `}
-                ID {item.target_user_id}
-              </p>
+              <UserIdentity
+                username={item.target_username}
+                displayName={item.target_display_name}
+              />
+              <p className='text-muted-foreground'>ID {item.target_user_id}</p>
             </div>
             <div>
               <p className='text-muted-foreground'>{t('Credit amount')}</p>
@@ -1162,15 +1199,19 @@ export function QuotaApplications() {
                           #{item.id}
                         </TableCell>
                         {isRoot && (
-                          <TableCell>{item.applicant_username}</TableCell>
+                          <TableCell>
+                            <UserIdentity
+                              username={item.applicant_username}
+                              displayName={item.applicant_display_name}
+                            />
+                          </TableCell>
                         )}
                         <TableCell>
-                          <span className='block font-medium'>
-                            {item.target_username}
-                          </span>
+                          <UserIdentity
+                            username={item.target_username}
+                            displayName={item.target_display_name}
+                          />
                           <span className='text-muted-foreground text-xs'>
-                            {item.target_display_name &&
-                              `${item.target_display_name} · `}
                             ID {item.target_user_id}
                           </span>
                         </TableCell>
@@ -1263,12 +1304,11 @@ export function QuotaApplications() {
                   <div key={item.id} className='rounded-md border p-3'>
                     <div className='flex items-start justify-between gap-3'>
                       <div className='min-w-0'>
-                        <p className='truncate font-medium'>
-                          {item.target_username}
-                        </p>
+                        <UserIdentity
+                          username={item.target_username}
+                          displayName={item.target_display_name}
+                        />
                         <p className='text-muted-foreground truncate text-xs'>
-                          {item.target_display_name &&
-                            `${item.target_display_name} · `}
                           ID {item.target_user_id}
                         </p>
                       </div>
@@ -1295,7 +1335,10 @@ export function QuotaApplications() {
                           <p className='text-muted-foreground text-xs'>
                             {t('Applicant')}
                           </p>
-                          <p className='truncate'>{item.applicant_username}</p>
+                          <UserIdentity
+                            username={item.applicant_username}
+                            displayName={item.applicant_display_name}
+                          />
                         </div>
                       )}
                       <div className={isRoot ? '' : 'col-span-2'}>
