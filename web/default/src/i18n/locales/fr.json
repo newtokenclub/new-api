@@ -5639,6 +5639,8 @@
     "Task status": "Task status",
     "All task statuses": "All task statuses",
     "Successful tasks": "Successful tasks",
-    "Failed tasks": "Failed tasks"
+    "Failed tasks": "Failed tasks",
+    "Action required applications": "Applications ? traiter",
+    "All records": "Tous les enregistrements"
   }
 }

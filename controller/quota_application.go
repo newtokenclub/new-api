@@ -130,6 +130,7 @@ func ListQuotaApplications(c *gin.Context) {
 		strings.TrimSpace(c.Query("payment_status")),
 		strings.TrimSpace(c.Query("test_amount")),
 		strings.TrimSpace(c.Query("invoice_required")),
+		strings.EqualFold(strings.TrimSpace(c.Query("include_all")), "true"),
 		strings.TrimSpace(c.Query("keyword")),
 		pageInfo.GetStartIdx(),
 		pageInfo.GetPageSize(),

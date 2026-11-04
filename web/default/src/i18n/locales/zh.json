@@ -5639,6 +5639,8 @@
     "Task status": "任务状态",
     "All task statuses": "全部任务状态",
     "Successful tasks": "成功任务",
-    "Failed tasks": "失败任务"
+    "Failed tasks": "失败任务",
+    "Action required applications": "待处理申请",
+    "All records": "全部记录"
   }
 }

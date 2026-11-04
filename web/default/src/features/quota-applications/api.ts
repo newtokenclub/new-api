@@ -31,6 +31,7 @@ export async function listQuotaApplications(params: {
   paymentStatus?: string
   testAmount?: string
   invoiceRequired?: string
+  includeAll?: boolean
   keyword?: string
   page?: number
   pageSize?: number
@@ -41,6 +42,7 @@ export async function listQuotaApplications(params: {
       payment_status: params.paymentStatus || undefined,
       test_amount: params.testAmount || undefined,
       invoice_required: params.invoiceRequired || undefined,
+      include_all: params.includeAll || undefined,
       keyword: params.keyword || undefined,
       p: params.page ?? 1,
       page_size: params.pageSize ?? 20,

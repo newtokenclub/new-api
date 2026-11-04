@@ -5639,6 +5639,8 @@
     "Task status": "タスクの状態",
     "All task statuses": "すべてのタスク状態",
     "Successful tasks": "成功したタスク",
-    "Failed tasks": "失敗したタスク"
+    "Failed tasks": "失敗したタスク",
+    "Action required applications": "要対応の申請",
+    "All records": "すべての記録"
   }
 }

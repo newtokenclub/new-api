@@ -5639,6 +5639,8 @@
     "Task status": "Task status",
     "All task statuses": "All task statuses",
     "Successful tasks": "Successful tasks",
-    "Failed tasks": "Failed tasks"
+    "Failed tasks": "Failed tasks",
+    "Action required applications": "Đơn cần xử lý",
+    "All records": "Tất cả bản ghi"
   }
 }

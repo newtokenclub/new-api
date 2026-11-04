@@ -758,7 +758,9 @@ function CreateApplicationDialog(props: {
               }
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {t(paymentStatus === 'paid' ? 'Paid' : 'Unpaid')}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value='unpaid'>{t('Unpaid')}</SelectItem>
@@ -773,7 +775,11 @@ function CreateApplicationDialog(props: {
               onValueChange={(value) => setInvoiceRequired(value === 'yes')}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>
+                  {t(
+                    invoiceRequired ? 'Invoice required' : 'No invoice required'
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value='no'>{t('No invoice required')}</SelectItem>
@@ -881,6 +887,7 @@ export function QuotaApplications() {
   const [view, setView] = useState<'applications' | 'reconciliation'>(
     'applications'
   )
+  const [includeAllApplications, setIncludeAllApplications] = useState(false)
   const [status, setStatus] = useState('all')
   const [paymentFilter, setPaymentFilter] = useState('all')
   const [testFilter, setTestFilter] = useState('all')
@@ -907,6 +914,7 @@ export function QuotaApplications() {
   const { data, isLoading, isError } = useQuery({
     queryKey: [
       'quota-applications',
+      includeAllApplications,
       status,
       paymentFilter,
       testFilter,
@@ -916,6 +924,7 @@ export function QuotaApplications() {
     ],
     queryFn: () =>
       listQuotaApplications({
+        includeAll: includeAllApplications,
         status: status === 'all' ? '' : status,
         paymentStatus: paymentFilter === 'all' ? '' : paymentFilter,
         testAmount: testFilter === 'all' ? '' : testFilter,
@@ -1053,87 +1062,160 @@ export function QuotaApplications() {
             <>
               <div className='flex flex-col gap-2 sm:flex-row'>
                 <Select
-                  value={status}
+                  value={includeAllApplications ? 'all' : 'actionable'}
                   onValueChange={(value) => {
                     if (!value) return
-                    setStatus(value)
+                    setIncludeAllApplications(value === 'all')
+                    if (value === 'actionable') {
+                      setStatus('all')
+                      setPaymentFilter('all')
+                      setTestFilter('all')
+                      setInvoiceFilter('all')
+                    }
                     setPage(1)
                   }}
                 >
                   <SelectTrigger className='w-full sm:w-52'>
-                    <SelectValue />
+                    <SelectValue>
+                      {t(
+                        includeAllApplications
+                          ? 'All records'
+                          : 'Action required applications'
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='all'>{t('All statuses')}</SelectItem>
-                    <SelectItem value='pending'>
-                      {t('Pending review')}
+                    <SelectItem value='actionable'>
+                      {t('Action required applications')}
                     </SelectItem>
-                    <SelectItem value='approved'>{t('Credited')}</SelectItem>
-                    <SelectItem value='rejected'>{t('Rejected')}</SelectItem>
+                    <SelectItem value='all'>{t('All records')}</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select
-                  value={paymentFilter}
-                  onValueChange={(value) => {
-                    if (value) {
-                      setPaymentFilter(value)
-                      setPage(1)
-                    }
-                  }}
-                >
-                  <SelectTrigger className='w-full sm:w-36'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='all'>
-                      {t('All payment statuses')}
-                    </SelectItem>
-                    <SelectItem value='paid'>{t('Paid')}</SelectItem>
-                    <SelectItem value='unpaid'>{t('Unpaid')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={testFilter}
-                  onValueChange={(value) => {
-                    if (value) {
-                      setTestFilter(value)
-                      setPage(1)
-                    }
-                  }}
-                >
-                  <SelectTrigger className='w-full sm:w-36'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='all'>{t('All amount types')}</SelectItem>
-                    <SelectItem value='false'>{t('Formal amount')}</SelectItem>
-                    <SelectItem value='true'>{t('Test amount')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={invoiceFilter}
-                  onValueChange={(value) => {
-                    if (value) {
-                      setInvoiceFilter(value)
-                      setPage(1)
-                    }
-                  }}
-                >
-                  <SelectTrigger className='w-full sm:w-40'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='all'>
-                      {t('All invoice statuses')}
-                    </SelectItem>
-                    <SelectItem value='true'>
-                      {t('Invoice required')}
-                    </SelectItem>
-                    <SelectItem value='false'>
-                      {t('No invoice required')}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                {includeAllApplications && (
+                  <>
+                    <Select
+                      value={status}
+                      onValueChange={(value) => {
+                        if (!value) return
+                        setStatus(value)
+                        setPage(1)
+                      }}
+                    >
+                      <SelectTrigger className='w-full sm:w-40'>
+                        <SelectValue>
+                          {t(
+                            status === 'pending'
+                              ? 'Pending review'
+                              : status === 'approved'
+                                ? 'Credited'
+                                : status === 'rejected'
+                                  ? 'Rejected'
+                                  : 'All statuses'
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='all'>{t('All statuses')}</SelectItem>
+                        <SelectItem value='pending'>
+                          {t('Pending review')}
+                        </SelectItem>
+                        <SelectItem value='approved'>{t('Credited')}</SelectItem>
+                        <SelectItem value='rejected'>{t('Rejected')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={paymentFilter}
+                      onValueChange={(value) => {
+                        if (!value) return
+                        setPaymentFilter(value)
+                        setPage(1)
+                      }}
+                    >
+                      <SelectTrigger className='w-full sm:w-40'>
+                        <SelectValue>
+                          {t(
+                            paymentFilter === 'paid'
+                              ? 'Paid'
+                              : paymentFilter === 'unpaid'
+                                ? 'Unpaid'
+                                : 'All payment statuses'
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='all'>
+                          {t('All payment statuses')}
+                        </SelectItem>
+                        <SelectItem value='paid'>{t('Paid')}</SelectItem>
+                        <SelectItem value='unpaid'>{t('Unpaid')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+                {includeAllApplications && (
+                  <Select
+                    value={testFilter}
+                    onValueChange={(value) => {
+                      if (value) {
+                        setTestFilter(value)
+                        setPage(1)
+                      }
+                    }}
+                  >
+                    <SelectTrigger className='w-full sm:w-36'>
+                      <SelectValue>
+                        {t(
+                          testFilter === 'true'
+                            ? 'Test amount'
+                            : testFilter === 'false'
+                              ? 'Formal amount'
+                              : 'All amount types'
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='all'>
+                        {t('All amount types')}
+                      </SelectItem>
+                      <SelectItem value='false'>{t('Formal amount')}</SelectItem>
+                      <SelectItem value='true'>{t('Test amount')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {includeAllApplications && (
+                  <Select
+                    value={invoiceFilter}
+                    onValueChange={(value) => {
+                      if (value) {
+                        setInvoiceFilter(value)
+                        setPage(1)
+                      }
+                    }}
+                  >
+                    <SelectTrigger className='w-full sm:w-40'>
+                      <SelectValue>
+                        {t(
+                          invoiceFilter === 'true'
+                            ? 'Invoice required'
+                            : invoiceFilter === 'false'
+                              ? 'No invoice required'
+                              : 'All invoice statuses'
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='all'>
+                        {t('All invoice statuses')}
+                      </SelectItem>
+                      <SelectItem value='true'>
+                        {t('Invoice required')}
+                      </SelectItem>
+                      <SelectItem value='false'>
+                        {t('No invoice required')}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
                 <div className='flex w-full max-w-md gap-2'>
                   <Input
                     value={searchInput}
@@ -1473,7 +1555,9 @@ export function QuotaApplications() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {t(reviewPaymentStatus === 'paid' ? 'Paid' : 'Unpaid')}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='unpaid'>{t('Unpaid')}</SelectItem>
@@ -1490,7 +1574,13 @@ export function QuotaApplications() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {t(
+                        reviewInvoiceRequired
+                          ? 'Invoice required'
+                          : 'No invoice required'
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='no'>
@@ -1557,7 +1647,9 @@ export function QuotaApplications() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {t(reviewPaymentStatus === 'paid' ? 'Paid' : 'Unpaid')}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='unpaid'>{t('Unpaid')}</SelectItem>
@@ -1574,7 +1666,13 @@ export function QuotaApplications() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {t(
+                        reviewInvoiceRequired
+                          ? 'Invoice required'
+                          : 'No invoice required'
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='no'>

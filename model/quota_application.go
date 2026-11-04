@@ -234,11 +234,15 @@ func SearchQuotaApplicationTargets(keyword string, limit int) ([]QuotaApplicatio
 	return users, err
 }
 
-func ListQuotaApplications(applicantId *int, status, paymentStatus, testAmount, invoiceRequired, keyword string, offset, limit int) ([]QuotaApplication, int64, error) {
+func ListQuotaApplications(applicantId *int, status, paymentStatus, testAmount, invoiceRequired string, includeAll bool, keyword string, offset, limit int) ([]QuotaApplication, int64, error) {
 	query := DB.Table("quota_applications AS qa").
 		Joins("LEFT JOIN users AS applicant ON applicant.id = qa.applicant_id").
 		Joins("LEFT JOIN users AS target ON target.id = qa.target_user_id").
 		Joins("LEFT JOIN users AS reviewer ON reviewer.id = qa.reviewed_by")
+	if !includeAll {
+		query = query.Where("(qa.status = ? OR (qa.status = ? AND qa.payment_status = ? AND COALESCE(qa.is_test_amount, 0) = ?))",
+			QuotaApplicationStatusPending, QuotaApplicationStatusApproved, "unpaid", false)
+	}
 	if applicantId != nil {
 		query = query.Where("qa.applicant_id = ?", *applicantId)
 	}
