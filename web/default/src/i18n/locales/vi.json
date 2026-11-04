@@ -38,7 +38,7 @@
     "No eligible consumption": "Không có mức tiêu thụ đủ điều kiện",
     "Mark as paid": "Đánh dấu đã thanh toán",
     "Submission failed": "Gửi thất bại",
-    "Rate must be between 0.1% and 5%": "Tỷ lệ phải nằm trong khoảng 0,1% đến 5%",
+    "Rate must be between 0.1% and 50%": "Tỷ lệ phải nằm trong khoảng 0,1% đến 50%",
     "Saved": "Đã lưu",
     "Save failed": "Lưu thất bại",
     "Payment method image": "Ảnh phương thức nhận tiền",

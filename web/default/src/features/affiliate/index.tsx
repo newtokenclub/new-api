@@ -175,11 +175,11 @@ export function Affiliate() {
     if (
       !Number.isFinite(rate) ||
       rate < 0.1 ||
-      rate > 5 ||
+      rate > 50 ||
       !selectedRuleSales ||
       !ruleGroup
     ) {
-      toast.error(t('Rate must be between 0.1% and 5%'))
+      toast.error(t('Rate must be between 0.1% and 50%'))
       return
     }
     const res = await api.post('/api/user/affiliate/commission-rules', {
@@ -541,13 +541,13 @@ export function Affiliate() {
                     <Input
                       type='number'
                       min='0.1'
-                      max='5'
+                      max='50'
                       step='0.1'
                       value={ruleRate}
                       onChange={(e) => setRuleRate(e.target.value)}
                     />
                     <p className='text-muted-foreground text-xs'>
-                      {t('Rate must be between 0.1% and 5%')}
+                      {t('Rate must be between 0.1% and 50%')}
                     </p>
                   </div>
                   <label className='flex items-center gap-2 self-center text-sm'>

@@ -61,7 +61,7 @@ type AffiliateSettlementItem struct {
 func (AffiliateSettlementApplication) TableName() string { return "affiliate_settlement_applications" }
 func (AffiliateSettlementItem) TableName() string { return "affiliate_settlement_items" }
 
-func ValidateAffiliateRate(rateBps int) error { if rateBps < 10 || rateBps > 500 { return errors.New("rate must be between 0.1% and 5%") }; return nil }
+func ValidateAffiliateRate(rateBps int) error { if rateBps < 10 || rateBps > 5000 { return errors.New("rate must be between 0.1% and 50%") }; return nil }
 
 type AffiliateSettlementQuotaRow struct {
 	GroupName string `gorm:"column:use_group"`

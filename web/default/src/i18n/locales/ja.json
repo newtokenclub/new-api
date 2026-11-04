@@ -38,7 +38,7 @@
     "No eligible consumption": "精算対象の利用はありません",
     "Mark as paid": "支払済みにする",
     "Submission failed": "送信に失敗しました",
-    "Rate must be between 0.1% and 5%": "料率は 0.1%～5% の範囲で指定してください",
+    "Rate must be between 0.1% and 50%": "料率は 0.1%～50% の範囲で指定してください",
     "Saved": "保存しました",
     "Save failed": "保存に失敗しました",
     "Payment method image": "受取方法の画像",

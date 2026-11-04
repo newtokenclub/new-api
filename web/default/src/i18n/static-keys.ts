@@ -137,7 +137,7 @@ export const STATIC_I18N_KEYS = [
   'Settlement rejected',
   'Settlement paid',
   'Submission failed',
-  'Rate must be between 0.1% and 5%',
+  'Rate must be between 0.1% and 50%',
   'Saved',
   'Payment method image',
   'Attachment exceeds 10 MB',

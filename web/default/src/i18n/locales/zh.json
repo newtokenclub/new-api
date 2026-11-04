@@ -38,7 +38,7 @@
     "No eligible consumption": "没有符合条件的消费",
     "Mark as paid": "标记为已付款",
     "Submission failed": "提交失败",
-    "Rate must be between 0.1% and 5%": "返点比例必须在 0.1% 至 5% 之间",
+    "Rate must be between 0.1% and 50%": "返点比例必须在 0.1% 至 50% 之间",
     "Saved": "已保存",
     "Save failed": "保存失败",
     "Payment method image": "收款方式图片",
