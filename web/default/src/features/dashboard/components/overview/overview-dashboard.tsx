@@ -59,6 +59,7 @@ import {
   useApiInfo,
   useDashboardContentVisibility,
 } from '../../hooks/use-status-data'
+import { AccountMonitor } from './account-monitor'
 import { AnnouncementsPanel } from './announcements-panel'
 import { ApiInfoPanel } from './api-info-panel'
 import { FAQPanel } from './faq-panel'
@@ -746,6 +747,7 @@ export function OverviewDashboard() {
       )}
 
       <SummaryCards />
+      <AccountMonitor />
 
       {showContentPanels && (
         <CardStaggerContainer

@@ -319,6 +319,7 @@ func migrateDB() error {
 		&ScriptVersion{},
 		&DeviceChallenge{},
 		&Device{},
+		&AccountMonitorPair{},
 		&Node{},
 		&ProviderGroup{},
 		&NodeCapability{},
