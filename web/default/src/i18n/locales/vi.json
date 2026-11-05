@@ -1,6 +1,10 @@
 {
   "translation": {
     "Account balance monitor": "Theo dõi số dư tài khoản",
+    "Account switched": "Đã chuyển tài khoản",
+    "Updated {{time}}": "Cập nhật lúc {{time}}",
+    "Next refresh in {{seconds}}s": "Tự động làm mới sau {{seconds}} giây",
+    "Unable to load account balances": "Không thể tải số dư tài khoản",
     "Invalid account credentials": "Thông tin xác thực tài khoản không hợp lệ",
     "A valid two-factor code is required": "Cần mã xác thực hai yếu tố hợp lệ",
     "An account is already linked": "Một tài khoản khác đã được liên kết",

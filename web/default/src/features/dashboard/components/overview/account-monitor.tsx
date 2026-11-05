@@ -30,7 +30,7 @@ import {
   Trash2,
   WalletCards,
 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -58,9 +58,14 @@ interface MonitorAccount {
   quota: number
 }
 
-async function fetchMonitorAccount(): Promise<MonitorAccount | null> {
+interface MonitorAccountsData {
+  current_account: MonitorAccount
+  monitor_account: MonitorAccount | null
+}
+
+async function fetchMonitorAccounts(): Promise<MonitorAccountsData> {
   const response = await api.get('/api/user/self/account-monitor/balance')
-  return response.data?.data ?? null
+  return response.data.data as MonitorAccountsData
 }
 
 export function AccountMonitor() {
@@ -73,14 +78,20 @@ export function AccountMonitor() {
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [clock, setClock] = useState(Date.now())
 
   const linkedAccount = useQuery({
     queryKey: ['dashboard', 'account-monitor', 'balance', currentUser?.id],
-    queryFn: fetchMonitorAccount,
+    queryFn: fetchMonitorAccounts,
     enabled: Boolean(currentUser?.id),
     refetchInterval: 60_000,
     staleTime: 0,
   })
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   const addAccount = useMutation({
     mutationFn: async () => {
@@ -133,9 +144,13 @@ export function AccountMonitor() {
     onSuccess: async (account) => {
       saveUserId(account.id)
       const response = await getSelf()
-      if (response?.success && response.data) setUser(response.data)
+      if (!response?.success || !response.data) {
+        window.location.reload()
+        return
+      }
+      setUser(response.data)
       await queryClient.clear()
-      window.location.reload()
+      toast.success(t('Account switched'))
     },
     onError: (error: Error) => toast.error(t(error.message)),
   })
@@ -153,9 +168,17 @@ export function AccountMonitor() {
     },
   })
 
-  const isLinked = Boolean(linkedAccount.data)
-  const primary = currentUser
-  const secondary = linkedAccount.data
+  const primary = linkedAccount.data?.current_account
+  const secondary = linkedAccount.data?.monitor_account
+  const accounts: MonitorAccount[] = []
+  if (primary) {
+    accounts.push(primary)
+    if (secondary) accounts.push(secondary)
+  }
+  const secondsUntilRefresh = Math.max(
+    0,
+    60 - Math.floor((clock - linkedAccount.dataUpdatedAt) / 1000)
+  )
   const handleAdd = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     addAccount.mutate()
@@ -180,22 +203,38 @@ export function AccountMonitor() {
             </p>
           </div>
         </div>
-        <div className='flex items-center gap-2'>
-          {isLinked && (
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              aria-label={t('Refresh balances')}
-              title={t('Refresh balances')}
-              onClick={() => void linkedAccount.refetch()}
-              disabled={linkedAccount.isFetching}
-            >
-              <RefreshCw
-                className={linkedAccount.isFetching ? 'animate-spin' : ''}
-              />
-            </Button>
-          )}
-          {isLinked ? (
+        <div className='flex flex-wrap items-center justify-end gap-x-3 gap-y-1'>
+          <div className='text-muted-foreground text-right text-[10px] leading-relaxed sm:text-[11px]'>
+            {linkedAccount.dataUpdatedAt > 0 && (
+              <>
+                <div>
+                  {t('Updated {{time}}', {
+                    time: new Date(
+                      linkedAccount.dataUpdatedAt
+                    ).toLocaleTimeString(),
+                  })}
+                </div>
+                <div>
+                  {t('Next refresh in {{seconds}}s', {
+                    seconds: secondsUntilRefresh,
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+          <Button
+            variant='ghost'
+            size='icon-sm'
+            aria-label={t('Refresh balances')}
+            title={t('Refresh balances')}
+            onClick={() => void linkedAccount.refetch()}
+            disabled={linkedAccount.isFetching || linkedAccount.isLoading}
+          >
+            <RefreshCw
+              className={linkedAccount.isFetching ? 'animate-spin' : ''}
+            />
+          </Button>
+          {secondary ? (
             <Button
               variant='outline'
               size='sm'
@@ -218,10 +257,9 @@ export function AccountMonitor() {
         </div>
       </div>
 
-      {isLinked && secondary ? (
+      {accounts.length > 0 ? (
         <div className='grid divide-y md:grid-cols-2 md:divide-x md:divide-y-0'>
-          {[primary, secondary].map((account) => {
-            if (!account) return null
+          {accounts.map((account) => {
             const active = account.id === currentUser?.id
             return (
               <div
@@ -284,22 +322,27 @@ export function AccountMonitor() {
               </div>
             )
           })}
+          {!secondary && (
+            <div className='bg-muted/20 flex min-h-40 flex-col items-center justify-center p-5 text-center md:border-l-0'>
+              <span className='bg-muted text-muted-foreground mb-2 flex size-9 items-center justify-center rounded-full'>
+                <Link2 className='size-4' />
+              </span>
+              <p className='text-sm font-medium'>
+                {t('Monitor another account')}
+              </p>
+              <p className='text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed'>
+                {t(
+                  'Link a second account to view its live balance here. Only the active account can use other pages.'
+                )}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
-        <div className='flex flex-col items-center px-5 py-7 text-center'>
-          <span className='bg-muted text-muted-foreground mb-3 flex size-10 items-center justify-center rounded-full'>
-            <Link2 className='size-5' />
-          </span>
-          <p className='text-sm font-medium'>
-            {linkedAccount.isLoading
-              ? t('Loading account status...')
-              : t('Monitor another account')}
-          </p>
-          <p className='text-muted-foreground mt-1 max-w-md text-xs leading-relaxed'>
-            {t(
-              'Link a second account to view its live balance here. Only the active account can use other pages.'
-            )}
-          </p>
+        <div className='text-muted-foreground px-5 py-7 text-center text-sm'>
+          {linkedAccount.isLoading
+            ? t('Loading account status...')
+            : t('Unable to load account balances')}
           {linkedAccount.isError && (
             <Button
               variant='outline'

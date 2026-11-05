@@ -1,6 +1,10 @@
 {
   "translation": {
     "Account balance monitor": "Account balance monitor",
+    "Account switched": "Account switched",
+    "Updated {{time}}": "Updated {{time}}",
+    "Next refresh in {{seconds}}s": "Next refresh in {{seconds}}s",
+    "Unable to load account balances": "Unable to load account balances",
     "Invalid account credentials": "Invalid account credentials",
     "A valid two-factor code is required": "A valid two-factor code is required",
     "An account is already linked": "An account is already linked",

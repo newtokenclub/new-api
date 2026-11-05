@@ -1,6 +1,10 @@
 {
   "translation": {
     "Account balance monitor": "Мониторинг баланса аккаунтов",
+    "Account switched": "Аккаунт переключен",
+    "Updated {{time}}": "Обновлено в {{time}}",
+    "Next refresh in {{seconds}}s": "Обновление через {{seconds}} с",
+    "Unable to load account balances": "Не удалось загрузить балансы аккаунтов",
     "Invalid account credentials": "Неверные учетные данные аккаунта",
     "A valid two-factor code is required": "Требуется действительный код двухфакторной проверки",
     "An account is already linked": "Другой аккаунт уже связан",

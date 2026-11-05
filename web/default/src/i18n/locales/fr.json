@@ -1,6 +1,10 @@
 {
   "translation": {
     "Account balance monitor": "Suivi du solde des comptes",
+    "Account switched": "Compte changé",
+    "Updated {{time}}": "Mis à jour à {{time}}",
+    "Next refresh in {{seconds}}s": "Actualisation dans {{seconds}} s",
+    "Unable to load account balances": "Impossible de charger les soldes des comptes",
     "Invalid account credentials": "Identifiants du compte invalides",
     "A valid two-factor code is required": "Un code à deux facteurs valide est requis",
     "An account is already linked": "Un compte est déjà associé",

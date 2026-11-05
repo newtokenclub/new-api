@@ -79,9 +79,20 @@ func AddAccountMonitor(c *gin.Context) {
 
 func GetAccountMonitorBalance(c *gin.Context) {
 	userId := c.GetInt("id")
+	currentUser, err := accountMonitorUser(userId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	pair, err := model.GetAccountMonitorPairForUser(userId)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusOK, gin.H{"success": true, "data": nil})
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"current_account": accountMonitorView(currentUser),
+				"monitor_account": nil,
+			},
+		})
 		return
 	}
 	if err != nil {
@@ -97,7 +108,13 @@ func GetAccountMonitorBalance(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": accountMonitorView(user)})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"current_account": accountMonitorView(currentUser),
+			"monitor_account": accountMonitorView(user),
+		},
+	})
 }
 
 func SwitchAccountMonitor(c *gin.Context) {

@@ -1,6 +1,10 @@
 {
   "translation": {
     "Account balance monitor": "アカウント残高モニター",
+    "Account switched": "アカウントを切り替えました",
+    "Updated {{time}}": "更新 {{time}}",
+    "Next refresh in {{seconds}}s": "{{seconds}}秒後に自動更新",
+    "Unable to load account balances": "アカウント残高を読み込めません",
     "Invalid account credentials": "アカウント認証情報が無効です",
     "A valid two-factor code is required": "有効な2段階認証コードが必要です",
     "An account is already linked": "すでに別のアカウントが連携されています",

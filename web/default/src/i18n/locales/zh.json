@@ -1,6 +1,10 @@
 {
   "translation": {
     "Account balance monitor": "多账号余额监控",
+    "Account switched": "已切换账号",
+    "Updated {{time}}": "更新于 {{time}}",
+    "Next refresh in {{seconds}}s": "{{seconds}} 秒后自动刷新",
+    "Unable to load account balances": "无法加载账号余额",
     "Invalid account credentials": "账号凭据无效",
     "A valid two-factor code is required": "请输入有效的两步验证码",
     "An account is already linked": "当前账号已绑定其他账号",
