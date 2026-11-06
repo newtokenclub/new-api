@@ -285,6 +285,7 @@ export function ChannelsTable() {
         })
       }
     },
+    refetchInterval: 15_000,
     placeholderData: (previousData) => previousData,
   })
 

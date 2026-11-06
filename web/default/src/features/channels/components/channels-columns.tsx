@@ -663,6 +663,9 @@ export function useChannelsColumns(
                   )}
                   <UpstreamUpdateTags channel={channel} />
                 </div>
+                <span className='text-muted-foreground text-xs'>
+                  {t('Unfinished tasks')}: {channel.current_tasks}
+                </span>
                 {channel.remark && (
                   <TooltipProvider delay={200}>
                     <Tooltip>

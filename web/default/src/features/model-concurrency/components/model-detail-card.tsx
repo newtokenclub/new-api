@@ -38,8 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-import { MODEL_CONCURRENCY_BLOCKED } from '../types'
-import type { ModelConcurrencyRule } from '../types'
+import { MODEL_CONCURRENCY_BLOCKED, type ModelConcurrencyRule } from '../types'
 import { UserRuleForm } from './user-rule-form'
 
 type ModelDetailCardProps = {
@@ -77,6 +76,31 @@ export function ModelDetailCard({
   }, [defaultRule, modelName])
 
   const parsedDefaultLimit = Number(defaultLimitInput)
+  const getLimitLabel = (limit: number) => {
+    if (limit === MODEL_CONCURRENCY_BLOCKED) {
+      return t('Not allowed')
+    }
+    if (limit === 0) {
+      return t('Unlimited')
+    }
+    return limit
+  }
+  const renderRuleLimit = (rule: ModelConcurrencyRule) => {
+    if (rule.has_rule === false) {
+      return (
+        <span className='text-muted-foreground'>
+          {t('Inherits')}: {getLimitLabel(rule.max_concurrency)}
+        </span>
+      )
+    }
+    if (rule.max_concurrency === MODEL_CONCURRENCY_BLOCKED) {
+      return <span className='text-destructive'>{t('Not allowed')}</span>
+    }
+    if (rule.max_concurrency === 0) {
+      return t('Unlimited')
+    }
+    return rule.max_concurrency
+  }
   const canSaveDefault =
     Number.isInteger(parsedDefaultLimit) &&
     parsedDefaultLimit >= MODEL_CONCURRENCY_BLOCKED &&
@@ -160,34 +184,36 @@ export function ModelDetailCard({
                   </TableCell>
                 </TableRow>
               )}
-              {userRules.map((rule) => (
-                <TableRow key={rule.id}>
-                  <TableCell>{rule.username || `#${rule.user_id}`}</TableCell>
-                  <TableCell>
-                    {rule.max_concurrency === MODEL_CONCURRENCY_BLOCKED ? (
-                      <span className='text-destructive'>
-                        {t('Not allowed')}
-                      </span>
-                    ) : rule.max_concurrency === 0 ? (
-                      t('Unlimited')
-                    ) : (
-                      rule.max_concurrency
-                    )}
-                  </TableCell>
-                  <TableCell>{rule.current}</TableCell>
-                  <TableCell className='text-right'>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='sm'
-                      disabled={deletePending}
-                      onClick={() => onDeleteRule(rule.id)}
-                    >
-                      {t('Delete')}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {[...userRules]
+                .sort((a, b) => b.current - a.current)
+                .map((rule) => (
+                  <TableRow key={`${rule.user_id}-${rule.id}`}>
+                    <TableCell>{rule.username || `#${rule.user_id}`}</TableCell>
+                    <TableCell>{renderRuleLimit(rule)}</TableCell>
+                    <TableCell>{rule.current}</TableCell>
+                    <TableCell className='text-right'>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        disabled={
+                          rule.has_rule === false
+                            ? upsertPending
+                            : deletePending
+                        }
+                        onClick={() => {
+                          if (rule.has_rule === false) {
+                            onSaveUserRule(rule.user_id, rule.max_concurrency)
+                          } else {
+                            onDeleteRule(rule.id)
+                          }
+                        }}
+                      >
+                        {rule.has_rule === false ? t('Add rule') : t('Delete')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </div>

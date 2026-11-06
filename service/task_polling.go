@@ -24,7 +24,7 @@ import (
 	"github.com/samber/lo"
 )
 
-const maxTaskPollingConcurrency = 20
+const maxTaskPollingConcurrency = 100
 
 // TaskPollingAdaptor 定义轮询所需的最小适配器接口，避免 service -> relay 的循环依赖
 type TaskPollingAdaptor interface {

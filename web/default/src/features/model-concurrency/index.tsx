@@ -24,8 +24,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { ModelDetailCard } from './components/model-detail-card'
 import { ModelListCard } from './components/model-list-card'
+import { UserTotalConcurrencyCard } from './components/user-total-concurrency-card'
 import {
   useAllModelConcurrencyRules,
+  useModelConcurrencyRules,
   useDeleteModelConcurrencyModel,
   useDeleteModelConcurrencyRule,
   useUpsertModelConcurrencyRule,
@@ -33,7 +35,6 @@ import {
   useUpsertUserAsyncConcurrencyRule,
   useUserAsyncConcurrencyRules,
 } from './hooks/use-model-concurrency'
-import { UserTotalConcurrencyCard } from './components/user-total-concurrency-card'
 import {
   MODEL_CONCURRENCY_ALL_USERS,
   type ModelConcurrencyRule,
@@ -85,7 +86,8 @@ function ModelConcurrencyContent() {
   const upsertRule = useUpsertModelConcurrencyRule()
   const deleteRule = useDeleteModelConcurrencyRule()
   const deleteModel = useDeleteModelConcurrencyModel()
-  const { data: userRules = [], isLoading: userRulesLoading } = useUserAsyncConcurrencyRules()
+  const { data: userRules = [], isLoading: userRulesLoading } =
+    useUserAsyncConcurrencyRules()
   const upsertUserRule = useUpsertUserAsyncConcurrencyRule()
   const deleteUserRule = useDeleteUserAsyncConcurrencyRule()
 
@@ -97,7 +99,9 @@ function ModelConcurrencyContent() {
         .map(([modelName, group]) => ({
           model_name: modelName,
           default_limit: group.defaultRule?.max_concurrency ?? null,
-          user_rule_count: group.userRules.length,
+          user_rule_count: group.userRules.filter(
+            (rule) => rule.has_rule !== false
+          ).length,
           // 「所有用户」行的 current 由后端填成该模型全部用户的进行中任务总数；
           // 只配了指定用户规则时退化为这些用户的求和。
           current_total:
@@ -109,6 +113,12 @@ function ModelConcurrencyContent() {
   )
 
   const selectedGroup = selectedModel ? groups.get(selectedModel) : undefined
+  const { data: selectedRules = [], isLoading: selectedRulesLoading } =
+    useModelConcurrencyRules(selectedModel)
+  const selectedGroupRules = useMemo(
+    () => groupRulesByModel(selectedRules).get(selectedModel ?? ''),
+    [selectedModel, selectedRules]
+  )
 
   const handleAddModel = (modelName: string, defaultLimit: number) => {
     // 立刻落库一条「所有用户」规则，模型从此出现在列表里（0 也会存，表示已配置但不限制）
@@ -134,43 +144,49 @@ function ModelConcurrencyContent() {
         <TabsTrigger value='users'>{t('User total concurrency')}</TabsTrigger>
       </TabsList>
       <TabsContent value='models' className='flex flex-col gap-6'>
-      <ModelListCard
-        summaries={summaries}
-        isLoading={isLoading}
-        selectedModel={selectedModel}
-        addPending={upsertRule.isPending}
-        deletePending={deleteModel.isPending}
-        onSelectModel={setSelectedModel}
-        onAddModel={handleAddModel}
-        onDeleteModel={handleDeleteModel}
-      />
-
-      {selectedModel !== null && (
-        <ModelDetailCard
-          modelName={selectedModel}
-          defaultRule={selectedGroup?.defaultRule ?? null}
-          userRules={selectedGroup?.userRules ?? []}
+        <ModelListCard
+          summaries={summaries}
           isLoading={isLoading}
-          upsertPending={upsertRule.isPending}
-          deletePending={deleteRule.isPending}
-          onClose={() => setSelectedModel(null)}
-          onSaveDefault={(maxConcurrency) =>
-            upsertRule.mutate({
-              model_name: selectedModel,
-              user_id: MODEL_CONCURRENCY_ALL_USERS,
-              max_concurrency: maxConcurrency,
-            })
-          }
-          onSaveUserRule={(userId, maxConcurrency) =>
-            upsertRule.mutate({
-              model_name: selectedModel,
-              user_id: userId,
-              max_concurrency: maxConcurrency,
-            })
-          }
-          onDeleteRule={(id) => deleteRule.mutate(id)}
+          selectedModel={selectedModel}
+          addPending={upsertRule.isPending}
+          deletePending={deleteModel.isPending}
+          onSelectModel={setSelectedModel}
+          onAddModel={handleAddModel}
+          onDeleteModel={handleDeleteModel}
         />
-      )}
+
+        {selectedModel !== null && (
+          <ModelDetailCard
+            modelName={selectedModel}
+            userRules={
+              selectedGroupRules?.userRules ?? selectedGroup?.userRules ?? []
+            }
+            defaultRule={
+              selectedGroupRules?.defaultRule ??
+              selectedGroup?.defaultRule ??
+              null
+            }
+            isLoading={isLoading || selectedRulesLoading}
+            upsertPending={upsertRule.isPending}
+            deletePending={deleteRule.isPending}
+            onClose={() => setSelectedModel(null)}
+            onSaveDefault={(maxConcurrency) =>
+              upsertRule.mutate({
+                model_name: selectedModel,
+                user_id: MODEL_CONCURRENCY_ALL_USERS,
+                max_concurrency: maxConcurrency,
+              })
+            }
+            onSaveUserRule={(userId, maxConcurrency) =>
+              upsertRule.mutate({
+                model_name: selectedModel,
+                user_id: userId,
+                max_concurrency: maxConcurrency,
+              })
+            }
+            onDeleteRule={(id) => deleteRule.mutate(id)}
+          />
+        )}
       </TabsContent>
       <TabsContent value='users'>
         <UserTotalConcurrencyCard
@@ -178,7 +194,12 @@ function ModelConcurrencyContent() {
           isLoading={userRulesLoading}
           pending={upsertUserRule.isPending}
           deletePending={deleteUserRule.isPending}
-          onSave={(userId, maxConcurrency) => upsertUserRule.mutate({ user_id: userId, max_concurrency: maxConcurrency })}
+          onSave={(userId, maxConcurrency) =>
+            upsertUserRule.mutate({
+              user_id: userId,
+              max_concurrency: maxConcurrency,
+            })
+          }
           onDelete={(userId) => deleteUserRule.mutate(userId)}
         />
       </TabsContent>

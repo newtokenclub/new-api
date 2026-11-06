@@ -63,6 +63,18 @@ export function useAllModelConcurrencyRules() {
   })
 }
 
+export function useModelConcurrencyRules(modelName: string | null) {
+  return useQuery({
+    queryKey: [RULES_KEY, modelName],
+    enabled: Boolean(modelName),
+    queryFn: async () => {
+      const res = await getModelConcurrencyRules(modelName ?? undefined)
+      return unwrap(res) ?? []
+    },
+    refetchInterval: 15_000,
+  })
+}
+
 function useInvalidateRules() {
   const queryClient = useQueryClient()
   return () => {

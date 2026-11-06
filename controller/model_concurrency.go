@@ -28,9 +28,37 @@ func GetModelConcurrencyRules(c *gin.Context) {
 	}
 
 	userIds := make([]int, 0, len(rules))
+	seenUserIds := make(map[int]struct{}, len(rules))
 	for _, rule := range rules {
 		if rule.UserId != model.ModelConcurrencyAllUsers {
 			userIds = append(userIds, rule.UserId)
+			seenUserIds[rule.UserId] = struct{}{}
+		}
+	}
+	defaultLimit := 0
+	for _, rule := range rules {
+		if rule.UserId == model.ModelConcurrencyAllUsers {
+			defaultLimit = rule.MaxConcurrency
+		}
+	}
+	if modelName != "" {
+		for userId, perModel := range counts {
+			current := perModel[modelName]
+			if current == 0 {
+				continue
+			}
+			if _, exists := seenUserIds[userId]; exists {
+				continue
+			}
+			rules = append(rules, &model.ModelConcurrency{
+				Id:             -userId,
+				ModelName:      modelName,
+				UserId:         userId,
+				MaxConcurrency: defaultLimit,
+				Current:        current,
+				HasRule:        false,
+			})
+			userIds = append(userIds, userId)
 		}
 	}
 	usernames, err := model.GetUsernamesByIds(userIds)
@@ -53,8 +81,13 @@ func GetModelConcurrencyRules(c *gin.Context) {
 			rule.Current = modelTotals[rule.ModelName]
 			continue
 		}
+		if rule.Id > 0 {
+			rule.HasRule = true
+		}
 		rule.Username = usernames[rule.UserId]
-		rule.Current = counts[rule.UserId][rule.ModelName]
+		if rule.HasRule {
+			rule.Current = counts[rule.UserId][rule.ModelName]
+		}
 	}
 
 	common.ApiSuccess(c, rules)

@@ -8,6 +8,7 @@ type TaskError struct {
 	Code       string `json:"code"`
 	Message    string `json:"message"`
 	Data       any    `json:"data"`
+	ChannelID  int    `json:"channel_id,omitempty"`
 	StatusCode int    `json:"-"`
 	LocalError bool   `json:"-"`
 	Error      error  `json:"-"`

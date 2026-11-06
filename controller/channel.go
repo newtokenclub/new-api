@@ -71,6 +71,25 @@ func clearChannelInfo(channel *model.Channel) {
 	}
 }
 
+func attachChannelTaskCounts(channels []*model.Channel) {
+	ids := make([]int, 0, len(channels))
+	for _, channel := range channels {
+		if channel != nil {
+			ids = append(ids, channel.Id)
+		}
+	}
+	counts, err := model.GetUnfinishedTaskCountsByChannelIDs(ids)
+	if err != nil {
+		common.SysError("get unfinished task counts by channel error: " + err.Error())
+		return
+	}
+	for _, channel := range channels {
+		if channel != nil {
+			channel.CurrentTasks = counts[channel.Id]
+		}
+	}
+}
+
 func applyChannelStatusFilter(query *gorm.DB, statusFilter int) *gorm.DB {
 	if statusFilter == common.ChannelStatusEnabled {
 		return query.Where("status = ?", common.ChannelStatusEnabled)
@@ -168,6 +187,7 @@ func GetAllChannels(c *gin.Context) {
 	for _, datum := range channelData {
 		clearChannelInfo(datum)
 	}
+	attachChannelTaskCounts(channelData)
 
 	countQuery := buildChannelListQuery(groupFilter, statusFilter, -1)
 	var results []struct {
@@ -370,6 +390,7 @@ func SearchChannels(c *gin.Context) {
 	}
 
 	pagedData := channelData[startIdx:endIdx]
+	attachChannelTaskCounts(pagedData)
 
 	for _, datum := range pagedData {
 		clearChannelInfo(datum)

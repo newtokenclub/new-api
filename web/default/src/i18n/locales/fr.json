@@ -1,5 +1,8 @@
 {
   "translation": {
+    "Inherits": "Hérite",
+    "Unfinished tasks": "Tâches inachevées",
+    "Maximum number of task status queries sent to this channel at the same time (1–100)": "Nombre maximal de requêtes de statut de tâche simultanées pour ce canal (1–100)",
     "Account balance monitor": "Suivi du solde des comptes",
     "Account switched": "Compte changé",
     "Updated {{time}}": "Mis à jour à {{time}}",

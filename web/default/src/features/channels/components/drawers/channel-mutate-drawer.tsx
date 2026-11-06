@@ -4041,20 +4041,20 @@ export function ChannelMutateDrawer({
                                     </FormLabel>
                                     <FormDescription>
                                       {t(
-                                        'Maximum number of task status queries sent to this channel at the same time (1–20)'
+                                        'Maximum number of task status queries sent to this channel at the same time (1–100)'
                                       )}
                                     </FormDescription>
                                     <FormControl>
                                       <Input
                                         type='number'
                                         min={1}
-                                        max={20}
+                                        max={100}
                                         step={1}
                                         value={field.value ?? 1}
                                         onChange={(event) =>
                                           field.onChange(
                                             Math.min(
-                                              20,
+                                              100,
                                               Math.max(
                                                 1,
                                                 Math.trunc(

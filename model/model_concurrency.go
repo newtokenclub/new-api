@@ -24,6 +24,7 @@ type ModelConcurrency struct {
 
 	Username string `json:"username,omitempty" gorm:"-"`
 	Current  int    `json:"current" gorm:"-"`
+	HasRule  bool   `json:"has_rule" gorm:"-"`
 }
 
 // ModelConcurrencyAllUsers 是「所有用户」规则使用的 UserId 取值。
@@ -68,8 +69,7 @@ func CountUnfinishedTaskByUserModel(userId int, modelName string) (int64, error)
 	err := DB.Model(&Task{}).
 		Where("user_id = ?", userId).
 		Where("model_name = ?", modelName).
-		Where("status != ?", TaskStatusSuccess).
-		Where("status != ?", TaskStatusFailure).
+		Where("status NOT IN ?", []TaskStatus{TaskStatusSuccess, TaskStatusFailure, "CANCELED", "CANCELLED"}).
 		Count(&total).Error
 	return total, err
 }
@@ -79,8 +79,7 @@ func CountUnfinishedTaskByUser(userId int) (int64, error) {
 	var total int64
 	err := DB.Model(&Task{}).
 		Where("user_id = ?", userId).
-		Where("status != ?", TaskStatusSuccess).
-		Where("status != ?", TaskStatusFailure).
+		Where("status NOT IN ?", []TaskStatus{TaskStatusSuccess, TaskStatusFailure, "CANCELED", "CANCELLED"}).
 		Count(&total).Error
 	return total, err
 }
@@ -97,8 +96,7 @@ func GetUnfinishedTaskCounts() (map[int]map[string]int, error) {
 	var rows []unfinishedTaskGroup
 	err := DB.Model(&Task{}).
 		Select("user_id, model_name, count(*) as total").
-		Where("status != ?", TaskStatusSuccess).
-		Where("status != ?", TaskStatusFailure).
+		Where("status NOT IN ?", []TaskStatus{TaskStatusSuccess, TaskStatusFailure, "CANCELED", "CANCELLED"}).
 		Group("user_id, model_name").
 		Find(&rows).Error
 	if err != nil {
@@ -111,6 +109,30 @@ func GetUnfinishedTaskCounts() (map[int]map[string]int, error) {
 			counts[row.UserId] = make(map[string]int)
 		}
 		counts[row.UserId][row.ModelName] = row.Total
+	}
+	return counts, nil
+}
+
+func GetUnfinishedTaskCountsByChannelIDs(channelIDs []int) (map[int]int, error) {
+	counts := make(map[int]int, len(channelIDs))
+	if len(channelIDs) == 0 {
+		return counts, nil
+	}
+	var rows []struct {
+		ChannelId int `gorm:"column:channel_id"`
+		Total     int `gorm:"column:total"`
+	}
+	err := DB.Model(&Task{}).
+		Select("channel_id, count(*) as total").
+		Where("channel_id IN ?", channelIDs).
+		Where("status NOT IN ?", []TaskStatus{TaskStatusSuccess, TaskStatusFailure, "CANCELED", "CANCELLED"}).
+		Group("channel_id").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		counts[row.ChannelId] = row.Total
 	}
 	return counts, nil
 }

@@ -43,6 +43,7 @@ export type ModelConcurrencyRule = {
   username?: string
   /** 该用户在该模型上进行中的异步任务数 */
   current: number
+  has_rule?: boolean
 }
 
 /** 列表页每行一个模型，由全部规则在前端按 model_name 聚合得到 */

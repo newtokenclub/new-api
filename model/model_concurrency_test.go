@@ -172,3 +172,31 @@ func TestCountUnfinishedTaskByUserModel(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
+
+func TestUnfinishedTaskCountsByChannelExcludeTerminalStatuses(t *testing.T) {
+	setupConcurrencyTables(t)
+
+	rows := []Task{
+		{UserId: 1, ChannelId: 10, ModelName: "sora-2", Status: TaskStatusNotStart},
+		{UserId: 1, ChannelId: 10, ModelName: "sora-2", Status: TaskStatusQueued},
+		{UserId: 2, ChannelId: 10, ModelName: "sora-2", Status: TaskStatusSubmitted},
+		{UserId: 2, ChannelId: 10, ModelName: "sora-2", Status: TaskStatusInProgress},
+		{UserId: 2, ChannelId: 10, ModelName: "sora-2", Status: TaskStatusSuccess},
+		{UserId: 2, ChannelId: 10, ModelName: "sora-2", Status: TaskStatusFailure},
+		{UserId: 2, ChannelId: 10, ModelName: "sora-2", Status: "CANCELED"},
+		{UserId: 2, ChannelId: 20, ModelName: "sora-2", Status: TaskStatusInProgress},
+	}
+	for i := range rows {
+		require.NoError(t, DB.Create(&rows[i]).Error)
+	}
+
+	counts, err := GetUnfinishedTaskCountsByChannelIDs([]int{10, 20, 30})
+	require.NoError(t, err)
+	assert.Equal(t, 4, counts[10])
+	assert.Equal(t, 1, counts[20])
+	assert.Zero(t, counts[30])
+
+	userCount, err := CountUnfinishedTaskByUser(2)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), userCount)
+}

@@ -1,5 +1,8 @@
 {
   "translation": {
+    "Inherits": "継承",
+    "Unfinished tasks": "未完了タスク",
+    "Maximum number of task status queries sent to this channel at the same time (1–100)": "このチャネルで同時に実行するタスク状態照会の最大数（1～100）",
     "Account balance monitor": "アカウント残高モニター",
     "Account switched": "アカウントを切り替えました",
     "Updated {{time}}": "更新 {{time}}",

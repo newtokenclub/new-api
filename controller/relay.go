@@ -512,6 +512,7 @@ func RelayTask(c *gin.Context) {
 	defer releaseConcurrency()
 
 	var result *relay.TaskSubmitResult
+	lastChannelID := 0
 	defer func() {
 		if taskErr != nil && relayInfo.Billing != nil {
 			relayInfo.Billing.Refund(c)
@@ -547,6 +548,7 @@ func RelayTask(c *gin.Context) {
 			}
 		}
 
+		lastChannelID = channel.Id
 		addUsedChannel(c, channel.Id)
 		bodyStorage, bodyErr := common.GetBodyStorage(c)
 		if bodyErr != nil {
@@ -629,6 +631,9 @@ func RelayTask(c *gin.Context) {
 		gopool.Go(func() {
 			perfmetrics.RecordRelaySample(relayInfo, false, 0)
 		})
+		if taskErr.StatusCode == http.StatusTooManyRequests && !taskErr.LocalError {
+			taskErr.ChannelID = lastChannelID
+		}
 		respondTaskError(c, taskErr)
 	}
 }
