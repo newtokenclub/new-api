@@ -775,6 +775,20 @@ export function Affiliate() {
                                 ` · ${t('Username')}: ${a.sales_username}`}
                             </div>
                           )}
+                          <div className='text-muted-foreground text-xs'>
+                            {t('Created at')}:{' '}
+                            {new Date(a.created_at * 1000).toLocaleString(
+                              undefined,
+                              {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              }
+                            )}
+                          </div>
                         </div>
                         <span>
                           {formatQuota(a.total_commission)} ·{' '}
@@ -1015,14 +1029,30 @@ export function Affiliate() {
                   {t('Settlement period')}:
                 </span>{' '}
                 {selectedSettlement.start_at > 0
-                  ? new Date(
-                      selectedSettlement.start_at * 1000
-                    ).toLocaleDateString()
+                  ? new Date(selectedSettlement.start_at * 1000).toLocaleString(
+                      undefined,
+                      {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      }
+                    )
                   : t('All available history')}{' '}
                 –{' '}
-                {new Date(
-                  selectedSettlement.end_at * 1000
-                ).toLocaleDateString()}
+                {new Date(selectedSettlement.end_at * 1000).toLocaleString(
+                  undefined,
+                  {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  }
+                )}
               </div>
               <div>
                 <span className='text-muted-foreground'>{t('Status')}:</span>{' '}
