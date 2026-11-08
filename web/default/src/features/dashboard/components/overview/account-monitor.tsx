@@ -49,8 +49,6 @@ import { api, getSelf } from '@/lib/api'
 import { formatQuota } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
 
-const TOKEN_KEY = 'dashboard_account_monitor_token'
-
 interface MonitorAccount {
   id: number
   username: string
@@ -108,10 +106,9 @@ export function AccountMonitor() {
           t(response.data?.message || 'Account verification failed')
         )
       }
-      return response.data.data as { token: string; account: MonitorAccount }
+      return response.data.data as { account: MonitorAccount }
     },
-    onSuccess: (data) => {
-      window.localStorage.setItem(TOKEN_KEY, data.token)
+    onSuccess: () => {
       setPassword('')
       setCode('')
       setDialogOpen(false)
@@ -125,15 +122,9 @@ export function AccountMonitor() {
 
   const switchAccount = useMutation({
     mutationFn: async () => {
-      const token = window.localStorage.getItem(TOKEN_KEY)
-      if (!token) {
-        throw new Error(
-          t('Switch authorization is missing. Relink the account.')
-        )
-      }
       const response = await api.post(
         '/api/user/self/account-monitor/switch',
-        { token },
+        {},
         { skipBusinessError: true, skipErrorHandler: true }
       )
       if (!response.data?.success) {
@@ -158,7 +149,6 @@ export function AccountMonitor() {
   const removeAccount = useMutation({
     mutationFn: async () => {
       await api.delete('/api/user/self/account-monitor')
-      window.localStorage.removeItem(TOKEN_KEY)
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({

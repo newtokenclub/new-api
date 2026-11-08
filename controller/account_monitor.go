@@ -69,12 +69,12 @@ func AddAccountMonitor(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	_, token, err := model.CreateAccountMonitorPair(currentId, secondary.Id)
+	_, _, err := model.CreateAccountMonitorPair(currentId, secondary.Id)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"token": token, "account": accountMonitorView(&secondary)}})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"account": accountMonitorView(&secondary)}})
 }
 
 func GetAccountMonitorBalance(c *gin.Context) {
@@ -119,14 +119,13 @@ func GetAccountMonitorBalance(c *gin.Context) {
 
 func SwitchAccountMonitor(c *gin.Context) {
 	userId := c.GetInt("id")
-	var req struct{ Token string `json:"token"` }
-	if err := c.ShouldBindJSON(&req); err != nil || req.Token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid account monitor token"})
+	pair, err := model.GetAccountMonitorPairForUser(userId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "Account monitor authorization is invalid"})
 		return
 	}
-	pair, err := model.GetAccountMonitorPairByToken(req.Token)
-	if err != nil || (pair.UserAId != userId && pair.UserBId != userId) {
-		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "Account monitor authorization is invalid"})
+	if err != nil {
+		common.ApiError(c, err)
 		return
 	}
 	otherId := pair.UserAId
