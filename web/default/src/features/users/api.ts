@@ -54,6 +54,33 @@ export async function getUserConsumption(
   }
 }
 
+export async function getRootUserConsumption(
+  username: string,
+  start_timestamp: number,
+  end_timestamp: number
+) {
+  const res = await api.get(
+    `/api/data/root/user/${encodeURIComponent(username)}`,
+    {
+      params: {
+        start_timestamp,
+        end_timestamp,
+        include_group: true,
+      },
+    }
+  )
+  return res.data as {
+    success: boolean
+    data?: Array<{
+      created_at: number
+      quota?: number
+      model_name?: string
+      use_group?: string
+    }>
+    message?: string
+  }
+}
+
 // ============================================================================
 // User Management APIs
 // ============================================================================

@@ -1,6 +1,8 @@
 {
   "translation": {
     "Task Log Support": "Hỗ trợ nhật ký tác vụ",
+    "User consumption": "Mức tiêu thụ của người dùng",
+    "View consumption details": "Xem chi tiết mức tiêu thụ",
     "View and manage task logs for all users without access to aggregate cost statistics.": "Xem và quản lý nhật ký tác vụ của tất cả người dùng nhưng không được truy cập thống kê chi phí tổng hợp.",
     "Inherits": "Kế thừa",
     "Unfinished tasks": "Tác vụ chưa hoàn tất",

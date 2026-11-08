@@ -1,6 +1,8 @@
 {
   "translation": {
     "Task Log Support": "任务日志支持",
+    "User consumption": "用户消费",
+    "View consumption details": "查看消费详情",
     "View and manage task logs for all users without access to aggregate cost statistics.": "查看和管理所有用户的任务日志，但不能查看费用汇总统计。",
     "Inherits": "继承",
     "Unfinished tasks": "未结束任务",

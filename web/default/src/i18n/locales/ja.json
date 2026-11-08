@@ -1,6 +1,8 @@
 {
   "translation": {
     "Task Log Support": "タスクログサポート",
+    "User consumption": "ユーザーの消費量",
+    "View consumption details": "消費の詳細を表示",
     "View and manage task logs for all users without access to aggregate cost statistics.": "全ユーザーのタスクログを表示・管理できますが、費用集計にはアクセスできません。",
     "Inherits": "継承",
     "Unfinished tasks": "未完了タスク",

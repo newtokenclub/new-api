@@ -1,6 +1,8 @@
 {
   "translation": {
     "Task Log Support": "Поддержка журналов задач",
+    "User consumption": "Потребление пользователя",
+    "View consumption details": "Посмотреть сведения о потреблении",
     "View and manage task logs for all users without access to aggregate cost statistics.": "Просмотр и управление журналами задач всех пользователей без доступа к сводной статистике расходов.",
     "Inherits": "Наследуется",
     "Unfinished tasks": "Незавершённые задачи",

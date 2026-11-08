@@ -27,7 +27,7 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -54,6 +54,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { getUser, getRootUserConsumption } from '@/features/users/api'
+import { UserConsumptionDialog } from '@/features/users/components/user-consumption-dialog'
+import type { User } from '@/features/users/types'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import {
   formatQuota,
@@ -79,9 +82,14 @@ import type {
   QuotaApplicationTarget,
 } from './types'
 
-function UserIdentity(props: { username: string; displayName?: string }) {
-  return (
-    <span className='flex min-w-0 flex-col'>
+function UserIdentity(props: {
+  username: string
+  displayName?: string
+  onClick?: () => void
+}) {
+  const { t } = useTranslation()
+  const identity = (
+    <span className='flex min-w-0 flex-col text-left'>
       <span className='truncate font-medium'>{props.username}</span>
       {props.displayName && (
         <span className='text-muted-foreground truncate text-xs'>
@@ -90,6 +98,21 @@ function UserIdentity(props: { username: string; displayName?: string }) {
       )}
     </span>
   )
+
+  if (props.onClick) {
+    return (
+      <button
+        type='button'
+        className='hover:text-primary focus-visible:ring-ring cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+        onClick={props.onClick}
+        title={t('View consumption details')}
+      >
+        {identity}
+      </button>
+    )
+  }
+
+  return identity
 }
 
 function getReconciliationRange(startValue: string, endValue: string) {
@@ -897,6 +920,8 @@ export function QuotaApplications() {
   const [page, setPage] = useState(1)
   const [createOpen, setCreateOpen] = useState(false)
   const [details, setDetails] = useState<QuotaApplication | null>(null)
+  const [consumptionTarget, setConsumptionTarget] =
+    useState<QuotaApplication | null>(null)
   const [reviewing, setReviewing] = useState<QuotaApplication | null>(null)
   const [approved, setApproved] = useState(true)
   const [reviewComment, setReviewComment] = useState('')
@@ -935,6 +960,24 @@ export function QuotaApplications() {
       }),
   })
   const items = data?.items ?? []
+  const consumptionUserQuery = useQuery({
+    queryKey: [
+      'quota-applications',
+      'target-user',
+      consumptionTarget?.target_user_id,
+    ],
+    queryFn: () => getUser(consumptionTarget?.target_user_id ?? 0),
+    enabled: isRoot && consumptionTarget !== null,
+  })
+  const loadTargetConsumption = useCallback(
+    (startTimestamp: number, endTimestamp: number) =>
+      getRootUserConsumption(
+        consumptionTarget?.target_username ?? '',
+        startTimestamp,
+        endTimestamp
+      ),
+    [consumptionTarget]
+  )
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / pageSize))
   let emptyMessage = t('No quota applications')
   if (isLoading) emptyMessage = t('Loading...')
@@ -1119,8 +1162,12 @@ export function QuotaApplications() {
                         <SelectItem value='pending'>
                           {t('Pending review')}
                         </SelectItem>
-                        <SelectItem value='approved'>{t('Credited')}</SelectItem>
-                        <SelectItem value='rejected'>{t('Rejected')}</SelectItem>
+                        <SelectItem value='approved'>
+                          {t('Credited')}
+                        </SelectItem>
+                        <SelectItem value='rejected'>
+                          {t('Rejected')}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <Select
@@ -1177,7 +1224,9 @@ export function QuotaApplications() {
                       <SelectItem value='all'>
                         {t('All amount types')}
                       </SelectItem>
-                      <SelectItem value='false'>{t('Formal amount')}</SelectItem>
+                      <SelectItem value='false'>
+                        {t('Formal amount')}
+                      </SelectItem>
                       <SelectItem value='true'>{t('Test amount')}</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1292,6 +1341,11 @@ export function QuotaApplications() {
                           <UserIdentity
                             username={item.target_username}
                             displayName={item.target_display_name}
+                            onClick={
+                              isRoot
+                                ? () => setConsumptionTarget(item)
+                                : undefined
+                            }
                           />
                           <span className='text-muted-foreground text-xs'>
                             ID {item.target_user_id}
@@ -1389,6 +1443,11 @@ export function QuotaApplications() {
                         <UserIdentity
                           username={item.target_username}
                           displayName={item.target_display_name}
+                          onClick={
+                            isRoot
+                              ? () => setConsumptionTarget(item)
+                              : undefined
+                          }
                         />
                         <p className='text-muted-foreground truncate text-xs'>
                           ID {item.target_user_id}
@@ -1703,6 +1762,22 @@ export function QuotaApplications() {
             </div>
           </div>
         </Dialog>
+        {consumptionTarget && (
+          <UserConsumptionDialog
+            user={
+              (consumptionUserQuery.data?.data ?? {
+                username: consumptionTarget.target_username,
+                display_name: consumptionTarget.target_display_name,
+              }) as Pick<User, 'username'> &
+                Partial<Pick<User, 'display_name' | 'quota'>>
+            }
+            open
+            onOpenChange={(open) => !open && setConsumptionTarget(null)}
+            loadConsumption={loadTargetConsumption}
+            showBalance
+            balanceLoading={consumptionUserQuery.isLoading}
+          />
+        )}
       </SectionPageLayout.Content>
     </SectionPageLayout>
   )

@@ -1,6 +1,8 @@
 {
   "translation": {
     "Task Log Support": "Support des journaux de tâches",
+    "User consumption": "Consommation utilisateur",
+    "View consumption details": "Voir les détails de consommation",
     "View and manage task logs for all users without access to aggregate cost statistics.": "Afficher et gérer les journaux de tâches de tous les utilisateurs sans accéder aux statistiques de coûts agrégées.",
     "Inherits": "Hérite",
     "Unfinished tasks": "Tâches inachevées",

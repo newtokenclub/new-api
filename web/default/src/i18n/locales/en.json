@@ -1,6 +1,8 @@
 {
   "translation": {
     "Task Log Support": "Task Log Support",
+    "User consumption": "User consumption",
+    "View consumption details": "View consumption details",
     "View and manage task logs for all users without access to aggregate cost statistics.": "View and manage task logs for all users without access to aggregate cost statistics.",
     "Inherits": "Inherits",
     "Unfinished tasks": "Unfinished tasks",
