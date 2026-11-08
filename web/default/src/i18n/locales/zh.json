@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Task Log Support": "任务日志支持",
+    "View and manage task logs for all users without access to aggregate cost statistics.": "查看和管理所有用户的任务日志，但不能查看费用汇总统计。",
     "Inherits": "继承",
     "Unfinished tasks": "未结束任务",
     "Maximum number of task status queries sent to this channel at the same time (1–100)": "该渠道同时查询任务状态的最大数量（1–100）",

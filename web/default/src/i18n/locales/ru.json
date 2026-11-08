@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Task Log Support": "Поддержка журналов задач",
+    "View and manage task logs for all users without access to aggregate cost statistics.": "Просмотр и управление журналами задач всех пользователей без доступа к сводной статистике расходов.",
     "Inherits": "Наследуется",
     "Unfinished tasks": "Незавершённые задачи",
     "Maximum number of task status queries sent to this channel at the same time (1–100)": "Максимальное число одновременных запросов статуса задач для этого канала (1–100)",

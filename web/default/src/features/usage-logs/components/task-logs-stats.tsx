@@ -26,6 +26,7 @@ import { formatLogQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { getTaskLogStats, getUserTaskLogStats } from '../api'
+import { useTaskLogPermissions } from '../hooks/use-task-log-permissions'
 import { buildTaskStatParams } from '../lib/utils'
 import type { TaskLogStatistics } from '../types'
 import { useUsageLogsContext } from './usage-logs-provider'
@@ -53,6 +54,7 @@ function StatBadge(props: { label: string; value: string; accent: string }) {
 export function TaskLogsStats() {
   const { t } = useTranslation()
   const isRoot = useIsRoot()
+  const { canViewTaskCostStats } = useTaskLogPermissions()
   const searchParams = route.useSearch()
   const { sensitiveVisible } = useUsageLogsContext()
 
@@ -72,7 +74,10 @@ export function TaskLogsStats() {
     },
     placeholderData: (previousData, previousQuery) =>
       previousQuery?.queryKey[1] === isRoot ? previousData : undefined,
+    enabled: canViewTaskCostStats,
   })
+
+  if (!canViewTaskCostStats) return null
 
   if (isLoading) {
     return (

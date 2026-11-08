@@ -584,7 +584,7 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			taskRoute.GET("/self", middleware.UserAuth(), controller.GetUserTask)
 			taskRoute.GET("/self/stat", middleware.UserAuth(), controller.GetUserTaskStat)
-			taskRoute.GET("/", middleware.RootAuth(), controller.GetAllTask)
+			taskRoute.GET("/", middleware.AdminAuth(), middleware.RequirePermission(authz.TaskLogViewAll), controller.GetAllTask)
 			taskRoute.GET("/stat", middleware.RootAuth(), controller.GetTaskStat)
 		}
 

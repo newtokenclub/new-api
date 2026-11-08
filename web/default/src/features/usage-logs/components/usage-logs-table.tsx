@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { type ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -38,6 +38,7 @@ import {
   LOG_TYPE_ALL_VALUE,
   LOG_TYPE_ENUM,
 } from '../constants'
+import { useTaskLogPermissions } from '../hooks/use-task-log-permissions'
 import { useColumnsByCategory } from '../lib/columns'
 import { fetchLogsByCategory } from '../lib/utils'
 import type { LogCategory } from '../types'
@@ -60,8 +61,24 @@ function getColumnVisibilityStorageKey(
 }
 
 function deserializeLogTypeFilter(value: unknown): unknown[] {
-  const values = Array.isArray(value) ? value : value ? [value] : []
+  let values: unknown[] = []
+  if (Array.isArray(value)) {
+    values = value
+  } else if (value) {
+    values = [value]
+  }
   return values.filter((item) => String(item) !== LOG_TYPE_ALL_VALUE)
+}
+
+function canViewAllLogsForCategory(config: {
+  logCategory: LogCategory
+  isAdmin: boolean
+  isRoot: boolean
+  canViewAllTaskLogs: boolean
+}): boolean {
+  if (config.logCategory === 'drawing') return config.isAdmin
+  if (config.logCategory === 'task') return config.canViewAllTaskLogs
+  return config.isRoot
 }
 
 interface UsageLogsTableProps {
@@ -72,7 +89,13 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const { t } = useTranslation()
   const isAdmin = useIsAdmin()
   const isRoot = useIsRoot()
-  const canViewAllLogs = logCategory === 'drawing' ? isAdmin : isRoot
+  const { canViewAllTaskLogs } = useTaskLogPermissions()
+  const canViewAllLogs = canViewAllLogsForCategory({
+    logCategory,
+    isAdmin,
+    isRoot,
+    canViewAllTaskLogs,
+  })
   const isMobile = useMediaQuery('(max-width: 640px)')
   const searchParams = route.useSearch()
 

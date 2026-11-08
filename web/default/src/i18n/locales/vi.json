@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Task Log Support": "Hỗ trợ nhật ký tác vụ",
+    "View and manage task logs for all users without access to aggregate cost statistics.": "Xem và quản lý nhật ký tác vụ của tất cả người dùng nhưng không được truy cập thống kê chi phí tổng hợp.",
     "Inherits": "Kế thừa",
     "Unfinished tasks": "Tác vụ chưa hoàn tất",
     "Maximum number of task status queries sent to this channel at the same time (1–100)": "Số truy vấn trạng thái tác vụ tối đa đồng thời cho kênh này (1–100)",

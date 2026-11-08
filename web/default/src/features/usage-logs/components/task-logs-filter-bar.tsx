@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient, useIsFetching } from '@tanstack/react-query'
 import { useNavigate, getRouteApi } from '@tanstack/react-router'
-import { type Table } from '@tanstack/react-table'
+import type { Table } from '@tanstack/react-table'
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -30,8 +30,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useIsAdmin } from '@/hooks/use-admin'
-import { useIsRoot } from '@/hooks/use-root'
 
+import { useTaskLogPermissions } from '../hooks/use-task-log-permissions'
 import { buildSearchParams } from '../lib/filter'
 import { getDefaultTimeRange } from '../lib/utils'
 import type { DrawingLogFilters, LogCategory, TaskLogFilters } from '../types'
@@ -47,6 +47,15 @@ const route = getRouteApi('/_authenticated/usage-logs/$section')
 
 type TaskLikeLogCategory = Extract<LogCategory, 'drawing' | 'task'>
 type TaskLogsFilters = DrawingLogFilters | TaskLogFilters
+
+function getTaskStatusLabel(
+  status: string | undefined,
+  t: (key: string) => string
+): string {
+  if (status === 'SUCCESS') return t('Successful tasks')
+  if (status === 'FAILURE') return t('Failed tasks')
+  return t('All task statuses')
+}
 
 interface TaskLogsFilterBarProps<TData> {
   table: Table<TData>
@@ -80,8 +89,9 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
   const queryClient = useQueryClient()
   const searchParams = route.useSearch()
   const isAdmin = useIsAdmin()
-  const isRoot = useIsRoot()
-  const canViewAllLogs = props.logCategory === 'drawing' ? isAdmin : isRoot
+  const { canViewAllTaskLogs, canViewTaskCostStats } = useTaskLogPermissions()
+  const canViewAllLogs =
+    props.logCategory === 'drawing' ? isAdmin : canViewAllTaskLogs
   const fetchingLogs = useIsFetching({ queryKey: ['logs'] })
 
   const [filters, setFilters] = useState<TaskLogsFilters>(() => {
@@ -236,7 +246,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
     </LogsFilterField>
   ) : null
   const usernameFilter =
-    isTask && isRoot ? (
+    isTask && canViewAllTaskLogs ? (
       <LogsFilterField>
         <LogsFilterInput
           placeholder={t('Username')}
@@ -258,13 +268,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
         }
       >
         <SelectTrigger aria-label={t('Task status')}>
-          <SelectValue>
-            {taskFilters.status === 'SUCCESS'
-              ? t('Successful tasks')
-              : taskFilters.status === 'FAILURE'
-                ? t('Failed tasks')
-                : t('All task statuses')}
-          </SelectValue>
+          <SelectValue>{getTaskStatusLabel(taskFilters.status, t)}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value='all'>{t('All task statuses')}</SelectItem>
@@ -285,11 +289,12 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
     </LogsFilterField>
   ) : null
 
-  const statsBar = isTask ? (
-    <div className='flex flex-wrap items-center gap-2'>
-      <TaskLogsStats />
-    </div>
-  ) : undefined
+  const statsBar =
+    isTask && canViewTaskCostStats ? (
+      <div className='flex flex-wrap items-center gap-2'>
+        <TaskLogsStats />
+      </div>
+    ) : undefined
 
   const mobileFilterCount = [
     filterValue,

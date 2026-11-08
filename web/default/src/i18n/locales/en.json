@@ -1,5 +1,7 @@
 {
   "translation": {
+    "Task Log Support": "Task Log Support",
+    "View and manage task logs for all users without access to aggregate cost statistics.": "View and manage task logs for all users without access to aggregate cost statistics.",
     "Inherits": "Inherits",
     "Unfinished tasks": "Unfinished tasks",
     "Maximum number of task status queries sent to this channel at the same time (1–100)": "Maximum number of task status queries sent to this channel at the same time (1–100)",

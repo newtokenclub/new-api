@@ -158,6 +158,23 @@ func TestClearUserAuthorizationRemovesOverrides(t *testing.T) {
 	assert.False(t, Can(90, common.RoleCommonUser, ChannelRead))
 }
 
+func TestDefaultNewAdminPermissionsOnlyAllowsQuotaApplications(t *testing.T) {
+	db := newAuthzTestDB(t)
+	require.NoError(t, Init(db))
+	permissions := DefaultNewAdminPermissions()
+
+	assert.True(t, permissions[ResourceQuotaApplication][ActionApplyQuota])
+	assert.False(t, permissions[ResourceChannel][ActionRead])
+	assert.False(t, permissions[ResourceChannel][ActionOperate])
+	assert.False(t, permissions[ResourceChannel][ActionWrite])
+	assert.False(t, permissions[ResourceTaskLog][ActionViewAll])
+
+	require.NoError(t, SetUserPermissions(101, permissions))
+	assert.True(t, Can(101, common.RoleAdminUser, QuotaApplicationApply))
+	assert.False(t, Can(101, common.RoleAdminUser, ChannelRead))
+	assert.False(t, Can(101, common.RoleAdminUser, TaskLogViewAll))
+}
+
 func TestSetUserPermissionsInTxDoesNotMutateEnforcerBeforeReload(t *testing.T) {
 	db := newAuthzTestDB(t)
 	require.NoError(t, Init(db))

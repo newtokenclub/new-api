@@ -8,6 +8,7 @@ export type AdminCapabilities = AdminPermissionMatrix
 export const ADMIN_PERMISSION_RESOURCES = {
   CHANNEL: 'channel',
   QUOTA_APPLICATION: 'quota_application',
+  TASK_LOG: 'task_log',
 } as const
 
 export const ADMIN_PERMISSION_ACTIONS = {
@@ -17,6 +18,7 @@ export const ADMIN_PERMISSION_ACTIONS = {
   SENSITIVE_WRITE: 'sensitive_write',
   SECRET_VIEW: 'secret_view',
   APPLY: 'apply',
+  VIEW_ALL: 'view_all',
 } as const
 
 // The role whose baseline grants are used as defaults in the permission editor.
@@ -67,10 +69,9 @@ export function hasPermission(
 }
 
 /**
- * Returns true when an admin has been reduced to the quota-application
- * capability only.  The backend sends the effective permission matrix, so we
- * can use it to tailor the admin navigation without affecting root users or
- * legacy admins that have no matrix at all.
+ * Returns true when an admin has no administrator-module capability beyond
+ * quota applications. Task-log support is a console capability, so granting it
+ * must not expose unrelated administrator navigation.
  */
 export function isQuotaApplicationOnlyAdmin(
   user: AuthUser | null | undefined
@@ -88,7 +89,8 @@ export function isQuotaApplicationOnlyAdmin(
     Object.entries(actions).some(
       ([action, allowed]) =>
         allowed === true &&
-        !(resource === 'quota_application' && action === 'apply')
+        !(resource === 'quota_application' && action === 'apply') &&
+        !(resource === 'task_log' && action === 'view_all')
     )
   )
 }
@@ -99,6 +101,23 @@ export function roleGrants(
   roleKey: string
 ): AdminPermissionMatrix {
   return catalog.roles.find((role) => role.key === roleKey)?.grants ?? {}
+}
+
+export function defaultNewAdminPermissions(
+  catalog: PermissionCatalog
+): AdminPermissionMatrix {
+  const permissions: AdminPermissionMatrix = {}
+  for (const resource of catalog.resources) {
+    permissions[resource.resource] = Object.fromEntries(
+      resource.actions.map((action) => [action.action, false])
+    )
+  }
+  if (permissions[ADMIN_PERMISSION_RESOURCES.QUOTA_APPLICATION]) {
+    permissions[ADMIN_PERMISSION_RESOURCES.QUOTA_APPLICATION][
+      ADMIN_PERMISSION_ACTIONS.APPLY
+    ] = true
+  }
+  return permissions
 }
 
 // normalizeAdminPermissions produces a full matrix for the catalog, filling any

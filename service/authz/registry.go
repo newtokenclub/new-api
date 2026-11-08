@@ -50,6 +50,21 @@ func AllPermissions() []Permission {
 	return permissions
 }
 
+// DefaultNewAdminPermissions returns the least-privilege permission set used
+// when a root user creates or promotes an administrator.
+func DefaultNewAdminPermissions() PermissionsMap {
+	permissions := make(PermissionsMap, len(registry))
+	for _, resource := range registry {
+		actions := make(map[string]bool, len(resource.Actions))
+		for _, action := range resource.Actions {
+			actions[action.Action] = false
+		}
+		permissions[resource.Resource] = actions
+	}
+	permissions[ResourceQuotaApplication][ActionApplyQuota] = true
+	return permissions
+}
+
 // PermissionsForRole returns the permissions whose DefaultRoles include roleKey.
 func PermissionsForRole(roleKey string) []Permission {
 	permissions := make([]Permission, 0)

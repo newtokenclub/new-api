@@ -1041,7 +1041,11 @@ func CreateUser(c *gin.Context) {
 		if err := cleanUser.InsertWithTx(tx, 0); err != nil {
 			return err
 		}
-		touched, err := updateAdminPermissionsForUserInTx(c, tx, cleanUser.Id, cleanUser.Role, user.AdminPermissions)
+		permissions := user.AdminPermissions
+		if cleanUser.Role >= common.RoleAdminUser && len(permissions) == 0 {
+			permissions = authz.DefaultNewAdminPermissions()
+		}
+		touched, err := updateAdminPermissionsForUserInTx(c, tx, cleanUser.Id, cleanUser.Role, permissions)
 		authzTouched = touched
 		return err
 	}); err != nil {
@@ -1229,6 +1233,21 @@ func ManageUser(c *gin.Context) {
 				common.ApiError(c, err)
 				return
 			}
+		}
+	} else if req.Action == "promote" {
+		if err := model.DB.Transaction(func(tx *gorm.DB) error {
+			if err := user.UpdateWithTx(tx, false); err != nil {
+				return err
+			}
+			authzTouched = true
+			return authz.SetUserPermissionsInTx(tx, user.Id, authz.DefaultNewAdminPermissions())
+		}); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if err := authz.ReloadPolicy(); err != nil {
+			common.ApiError(c, err)
+			return
 		}
 	} else {
 		if err := user.Update(false); err != nil {
