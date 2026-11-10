@@ -1,6 +1,12 @@
 {
   "translation": {
     "Task Log Support": "Task Log Support",
+    "Subordinate remark": "Subordinate remark",
+    "Add subordinate remark": "Add subordinate remark",
+    "Edit subordinate remark": "Edit subordinate remark",
+    "Subordinate remark saved": "Subordinate remark saved",
+    "Add a private remark for managing this subordinate": "Add a private remark for managing this subordinate",
+    "Commission": "Commission",
     "User consumption": "User consumption",
     "View consumption details": "View consumption details",
     "View and manage task logs for all users without access to aggregate cost statistics.": "View and manage task logs for all users without access to aggregate cost statistics.",

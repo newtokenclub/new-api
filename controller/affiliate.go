@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -31,6 +32,7 @@ type AffiliateUser struct {
 	AffHistoryQuota int `json:"aff_history_quota"`
 	CreatedAt   int64  `json:"created_at"`
 	LastLoginAt int64  `json:"last_login_at"`
+	SalesRemark string `json:"sales_remark"`
 }
 
 func affiliateDTO(u *model.User) AffiliateUser {
@@ -57,10 +59,12 @@ func parseAffiliateTarget(c *gin.Context) (int, bool) {
 
 func GetAffiliateUsers(c *gin.Context) {
 	page := common.GetPageQuery(c)
-	query := model.DB.Model(&model.User{}).Where("inviter_id = ? AND deleted_at IS NULL", c.GetInt("id"))
+	salesID := c.GetInt("id")
+	query := model.DB.Model(&model.User{}).Where("inviter_id = ? AND deleted_at IS NULL", salesID)
 	if keyword := strings.TrimSpace(c.Query("keyword")); keyword != "" {
 		like := "%" + keyword + "%"
-		query = query.Where("username LIKE ? OR display_name LIKE ?", like, like)
+		noteUsers := model.DB.Model(&model.AffiliateUserNote{}).Select("target_user_id").Where("sales_id = ? AND remark LIKE ?", salesID, like)
+		query = query.Where("username LIKE ? OR display_name LIKE ? OR id IN (?)", like, like, noteUsers)
 	}
 	if group := strings.TrimSpace(c.Query("group")); group != "" {
 		query = query.Where("(`group` = ? OR `group` LIKE ? OR `group` LIKE ? OR `group` LIKE ?)", group, group+",%", "%,"+group, "%,"+group+",%")
@@ -69,8 +73,16 @@ func GetAffiliateUsers(c *gin.Context) {
 	if err := query.Count(&total).Error; err != nil { common.ApiError(c, err); return }
 	var users []*model.User
 	if err := query.Omit("password", "access_token").Order("id DESC").Limit(page.GetPageSize()).Offset(page.GetStartIdx()).Find(&users).Error; err != nil { common.ApiError(c, err); return }
+	userIDs := make([]int, 0, len(users))
+	for _, user := range users { userIDs = append(userIDs, user.Id) }
+	var notes []model.AffiliateUserNote
+	if len(userIDs) > 0 {
+		if err := model.DB.Where("sales_id = ? AND target_user_id IN ?", salesID, userIDs).Find(&notes).Error; err != nil { common.ApiError(c, err); return }
+	}
+	noteByUser := make(map[int]string, len(notes))
+	for _, note := range notes { noteByUser[note.TargetUserId] = note.Remark }
 	items := make([]AffiliateUser, 0, len(users))
-	for _, u := range users { items = append(items, affiliateDTO(u)) }
+	for _, u := range users { item := affiliateDTO(u); item.SalesRemark = noteByUser[u.Id]; items = append(items, item) }
 	page.SetTotal(int(total)); page.SetItems(items)
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"items": items, "total": total, "page": page.Page, "page_size": page.PageSize}})
 }
@@ -105,7 +117,35 @@ func GetAffiliateGroups(c *gin.Context) {
 func GetAffiliateUser(c *gin.Context) {
 	id, ok := parseAffiliateTarget(c); if !ok { return }
 	u, err := model.GetUserById(id, false); if err != nil { common.ApiError(c, err); return }
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": affiliateDTO(u)})
+	item := affiliateDTO(u)
+	var note model.AffiliateUserNote
+	if err := model.DB.Where("sales_id = ? AND target_user_id = ?", c.GetInt("id"), id).First(&note).Error; err == nil { item.SalesRemark = note.Remark } else if !errors.Is(err, gorm.ErrRecordNotFound) { common.ApiError(c, err); return }
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": item})
+}
+
+func UpdateAffiliateUserRemark(c *gin.Context) {
+	targetID, ok := parseAffiliateTarget(c)
+	if !ok { return }
+	var req struct { Remark string `json:"remark"` }
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil { common.ApiError(c, err); return }
+	remark := strings.TrimSpace(req.Remark)
+	if len([]rune(remark)) > 500 { common.ApiErrorMsg(c, "remark must not exceed 500 characters"); return }
+	salesID := c.GetInt("id")
+	if remark == "" {
+		if err := model.DB.Where("sales_id = ? AND target_user_id = ?", salesID, targetID).Delete(&model.AffiliateUserNote{}).Error; err != nil { common.ApiError(c, err); return }
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"remark": ""}})
+		return
+	}
+	var note model.AffiliateUserNote
+	err := model.DB.Where("sales_id = ? AND target_user_id = ?", salesID, targetID).First(&note).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		note = model.AffiliateUserNote{SalesId: salesID, TargetUserId: targetID, Remark: remark}
+		err = model.DB.Create(&note).Error
+	} else if err == nil {
+		err = model.DB.Model(&note).Update("remark", remark).Error
+	}
+	if err != nil { common.ApiError(c, err); return }
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"remark": remark}})
 }
 
 func GetAffiliateConsumption(c *gin.Context) {

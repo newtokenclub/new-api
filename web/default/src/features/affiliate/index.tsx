@@ -7,7 +7,7 @@ published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 */
 import { useQuery } from '@tanstack/react-query'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3, Pencil } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -18,6 +18,7 @@ import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import { UserConsumptionDialog } from '@/features/users/components/user-consumption-dialog'
 import type { User } from '@/features/users/types'
 import { api } from '@/lib/api'
@@ -38,6 +39,7 @@ type AffiliateUser = {
   aff_history_quota: number
   created_at: number
   last_login_at: number
+  sales_remark: string
 }
 
 type AffiliateDialog =
@@ -94,6 +96,8 @@ export function Affiliate() {
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null)
   const [ruleFilter, setRuleFilter] = useState('')
   const [activeTab, setActiveTab] = useState('subordinates')
+  const [remarkUser, setRemarkUser] = useState<AffiliateUser | null>(null)
+  const [remarkValue, setRemarkValue] = useState('')
   const isRoot = authUser?.role === 100
 
   const { data, isLoading, refetch } = useQuery({
@@ -142,8 +146,9 @@ export function Affiliate() {
     if (res.data.success) setSettlementPreview(res.data.data)
   }
   const submitSettlement = async () => {
-    if (dialog?.type !== 'settlement' || !settlementPreview?.items?.length)
+    if (dialog?.type !== 'settlement' || !settlementPreview?.items?.length) {
       return
+    }
     setSubmitting(true)
     try {
       const res = await api.post('/api/user/affiliate/settlements', {
@@ -334,6 +339,91 @@ export function Affiliate() {
         display_name: settlement.target_display_name || '',
       },
     })
+  const openRemark = (user: AffiliateUser) => {
+    setRemarkUser(user)
+    setRemarkValue(user.sales_remark || '')
+  }
+  const saveRemark = async () => {
+    if (!remarkUser) return
+    setSubmitting(true)
+    try {
+      const res = await api.put(
+        `/api/user/affiliate/users/${remarkUser.id}/remark`,
+        { remark: remarkValue }
+      )
+      if (!res.data.success) {
+        toast.error(res.data.message || t('Save failed'))
+        return
+      }
+      toast.success(t('Subordinate remark saved'))
+      setRemarkUser(null)
+      await refetch()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+  const renderSettlementActions = (settlement: any) => (
+    <div className='flex items-center justify-end gap-1 whitespace-nowrap'>
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={() => setSelectedSettlement(settlement)}
+      >
+        {t('View details')}
+      </Button>
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={() => openSettlementConsumption(settlement)}
+      >
+        <BarChart3 className='mr-1 size-4' />
+        {t('View user consumption')}
+      </Button>
+      {isRoot && settlement.status === 'pending' && (
+        <>
+          <Button
+            size='sm'
+            onClick={async () => {
+              await api.post(
+                `/api/user/affiliate/settlements/${settlement.id}/review`,
+                { approved: true }
+              )
+              await Promise.all([refetchSettlements(), refetchAffiliateStats()])
+            }}
+          >
+            {t('Approve')}
+          </Button>
+          <Button
+            size='sm'
+            variant='outline'
+            onClick={async () => {
+              await api.post(
+                `/api/user/affiliate/settlements/${settlement.id}/review`,
+                { approved: false }
+              )
+              await Promise.all([refetchSettlements(), refetchAffiliateStats()])
+            }}
+          >
+            {t('Reject')}
+          </Button>
+        </>
+      )}
+      {isRoot && settlement.status === 'approved' && (
+        <Button
+          size='sm'
+          onClick={async () => {
+            await api.post(
+              `/api/user/affiliate/settlements/${settlement.id}/review`,
+              { paid: true }
+            )
+            await Promise.all([refetchSettlements(), refetchAffiliateStats()])
+          }}
+        >
+          {t('Mark as paid')}
+        </Button>
+      )}
+    </div>
+  )
   const renderUserActions = (user: AffiliateUser, compact = false) => (
     <div className={compact ? 'grid grid-cols-2 gap-2' : 'flex gap-1'}>
       <Button
@@ -372,7 +462,20 @@ export function Affiliate() {
   )
   let tableBody = users.map((user) => (
     <tr key={user.id} className='border-b align-middle'>
+      <td className='p-3 font-mono tabular-nums'>{user.id}</td>
       <td className='p-3 font-medium'>{user.username}</td>
+      <td className='max-w-56'>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='h-auto max-w-full justify-start px-1 text-left'
+          title={user.sales_remark || t('Add subordinate remark')}
+          onClick={() => openRemark(user)}
+        >
+          <span className='truncate'>{user.sales_remark || '-'}</span>
+          <Pencil className='ml-2 size-3.5 shrink-0' />
+        </Button>
+      </td>
       <td>{user.status === 1 ? t('Enabled') : t('Disabled')}</td>
       <td>{formatQuota(user.quota)}</td>
       <td>
@@ -400,7 +503,7 @@ export function Affiliate() {
   if (isLoading) {
     tableBody = [
       <tr key='loading'>
-        <td className='p-3' colSpan={10}>
+        <td className='p-3' colSpan={12}>
           {t('Loading...')}
         </td>
       </tr>,
@@ -408,7 +511,7 @@ export function Affiliate() {
   } else if (users.length === 0) {
     tableBody = [
       <tr key='empty'>
-        <td className='text-muted-foreground p-8 text-center' colSpan={10}>
+        <td className='text-muted-foreground p-8 text-center' colSpan={12}>
           {t('No direct subordinates')}
         </td>
       </tr>,
@@ -746,133 +849,203 @@ export function Affiliate() {
                     {t('No settlement applications')}
                   </div>
                 ) : (
-                  <div className='space-y-1 text-sm'>
-                    {(settlementsData?.data || []).map((a: any) => (
-                      <div
-                        key={a.id}
-                        className='flex flex-wrap items-center justify-between gap-2 border-b py-2'
-                      >
-                        <div>
-                          <div className='font-medium'>
-                            #{a.id} ·{' '}
-                            {a.target_display_name ||
-                              a.target_username ||
-                              `#${a.target_user_id}`}
+                  <>
+                    <div className='hidden overflow-x-auto md:block'>
+                      <table className='w-full min-w-[980px] text-sm'>
+                        <thead>
+                          <tr className='border-b text-left'>
+                            <th className='px-3 py-2'>{t('Application ID')}</th>
+                            <th className='px-3 py-2'>{t('Target user')}</th>
+                            {isRoot && (
+                              <th className='px-3 py-2'>{t('Sales user')}</th>
+                            )}
+                            <th className='px-3 py-2'>{t('Created at')}</th>
+                            <th className='px-3 py-2'>{t('Commission')}</th>
+                            <th className='px-3 py-2'>{t('Status')}</th>
+                            <th className='px-3 py-2 text-right'>
+                              {t('Actions')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(settlementsData?.data || []).map((a: any) => (
+                            <tr key={a.id} className='border-b last:border-b-0'>
+                              <td className='px-3 py-2 font-mono whitespace-nowrap tabular-nums'>
+                                #{a.id}
+                              </td>
+                              <td className='px-3 py-2 whitespace-nowrap'>
+                                <div className='font-medium'>
+                                  {a.target_display_name ||
+                                    a.target_username ||
+                                    `#${a.target_user_id}`}
+                                </div>
+                                {a.target_display_name && a.target_username && (
+                                  <div className='text-muted-foreground text-xs'>
+                                    {a.target_username}
+                                  </div>
+                                )}
+                              </td>
+                              {isRoot && (
+                                <td className='px-3 py-2 whitespace-nowrap'>
+                                  <div className='font-medium'>
+                                    {a.sales_display_name ||
+                                      a.sales_username ||
+                                      `#${a.sales_id}`}
+                                  </div>
+                                  {a.sales_display_name && a.sales_username && (
+                                    <div className='text-muted-foreground text-xs'>
+                                      {a.sales_username}
+                                    </div>
+                                  )}
+                                </td>
+                              )}
+                              <td className='px-3 py-2 whitespace-nowrap'>
+                                {new Date(a.created_at * 1000).toLocaleString()}
+                              </td>
+                              <td className='px-3 py-2 font-medium whitespace-nowrap tabular-nums'>
+                                {formatQuota(a.total_commission)}
+                              </td>
+                              <td className='px-3 py-2 whitespace-nowrap'>
+                                {t(`Settlement ${a.status}`)}
+                              </td>
+                              <td className='px-3 py-2'>
+                                {renderSettlementActions(a)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className='space-y-2 text-sm md:hidden'>
+                      {(settlementsData?.data || []).map((a: any) => (
+                        <div
+                          key={a.id}
+                          className='space-y-3 rounded-md border p-3'
+                        >
+                          <div>
+                            <div className='font-medium'>
+                              #{a.id} ·{' '}
+                              {a.target_display_name ||
+                                a.target_username ||
+                                `#${a.target_user_id}`}
+                            </div>
+                            {a.target_display_name && a.target_username && (
+                              <div className='text-muted-foreground text-xs'>
+                                {t('Username')}: {a.target_username}
+                              </div>
+                            )}
+                            {isRoot && (
+                              <div className='text-muted-foreground text-xs'>
+                                {t('Sales user')}:{' '}
+                                {a.sales_display_name ||
+                                  a.sales_username ||
+                                  `#${a.sales_id}`}
+                                {a.sales_display_name &&
+                                  a.sales_username &&
+                                  ` · ${t('Username')}: ${a.sales_username}`}
+                              </div>
+                            )}
+                            <div className='text-muted-foreground text-xs'>
+                              {t('Created at')}:{' '}
+                              {new Date(a.created_at * 1000).toLocaleString(
+                                undefined,
+                                {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                }
+                              )}
+                            </div>
                           </div>
-                          {a.target_display_name && a.target_username && (
-                            <div className='text-muted-foreground text-xs'>
-                              {t('Username')}: {a.target_username}
-                            </div>
-                          )}
-                          {isRoot && (
-                            <div className='text-muted-foreground text-xs'>
-                              {t('Sales user')}:{' '}
-                              {a.sales_display_name ||
-                                a.sales_username ||
-                                `#${a.sales_id}`}
-                              {a.sales_display_name &&
-                                a.sales_username &&
-                                ` · ${t('Username')}: ${a.sales_username}`}
-                            </div>
-                          )}
-                          <div className='text-muted-foreground text-xs'>
-                            {t('Created at')}:{' '}
-                            {new Date(a.created_at * 1000).toLocaleString(
-                              undefined,
-                              {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                              }
+                          <span>
+                            {formatQuota(a.total_commission)} ·{' '}
+                            {t(`Settlement ${a.status}`)}
+                          </span>
+                          <div className='flex flex-wrap gap-1'>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() => setSelectedSettlement(a)}
+                            >
+                              {t('View details')}
+                            </Button>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() => openSettlementConsumption(a)}
+                            >
+                              <BarChart3 className='mr-1 size-4' />
+                              {t('View user consumption')}
+                            </Button>
+                            {isRoot && a.status === 'pending' && (
+                              <>
+                                <Button
+                                  size='sm'
+                                  onClick={async () => {
+                                    await api.post(
+                                      `/api/user/affiliate/settlements/${a.id}/review`,
+                                      { approved: true }
+                                    )
+                                    await Promise.all([
+                                      refetchSettlements(),
+                                      refetchAffiliateStats(),
+                                    ])
+                                  }}
+                                >
+                                  {t('Approve')}
+                                </Button>
+                                <Button
+                                  size='sm'
+                                  variant='outline'
+                                  onClick={async () => {
+                                    await api.post(
+                                      `/api/user/affiliate/settlements/${a.id}/review`,
+                                      { approved: false }
+                                    )
+                                    await Promise.all([
+                                      refetchSettlements(),
+                                      refetchAffiliateStats(),
+                                    ])
+                                  }}
+                                >
+                                  {t('Reject')}
+                                </Button>
+                              </>
+                            )}
+                            {isRoot && a.status === 'approved' && (
+                              <Button
+                                size='sm'
+                                onClick={async () => {
+                                  await api.post(
+                                    `/api/user/affiliate/settlements/${a.id}/review`,
+                                    { paid: true }
+                                  )
+                                  await Promise.all([
+                                    refetchSettlements(),
+                                    refetchAffiliateStats(),
+                                  ])
+                                }}
+                              >
+                                {t('Mark as paid')}
+                              </Button>
                             )}
                           </div>
                         </div>
-                        <span>
-                          {formatQuota(a.total_commission)} ·{' '}
-                          {t(`Settlement ${a.status}`)}
-                        </span>
-                        <div className='flex flex-wrap gap-1'>
-                          <Button
-                            size='sm'
-                            variant='outline'
-                            onClick={() => setSelectedSettlement(a)}
-                          >
-                            {t('View details')}
-                          </Button>
-                          <Button
-                            size='sm'
-                            variant='outline'
-                            onClick={() => openSettlementConsumption(a)}
-                          >
-                            <BarChart3 className='mr-1 size-4' />
-                            {t('View user consumption')}
-                          </Button>
-                          {isRoot && a.status === 'pending' && (
-                            <>
-                              <Button
-                                size='sm'
-                                onClick={async () => {
-                                  await api.post(
-                                    `/api/user/affiliate/settlements/${a.id}/review`,
-                                    { approved: true }
-                                  )
-                                  await Promise.all([
-                                    refetchSettlements(),
-                                    refetchAffiliateStats(),
-                                  ])
-                                }}
-                              >
-                                {t('Approve')}
-                              </Button>
-                              <Button
-                                size='sm'
-                                variant='outline'
-                                onClick={async () => {
-                                  await api.post(
-                                    `/api/user/affiliate/settlements/${a.id}/review`,
-                                    { approved: false }
-                                  )
-                                  await Promise.all([
-                                    refetchSettlements(),
-                                    refetchAffiliateStats(),
-                                  ])
-                                }}
-                              >
-                                {t('Reject')}
-                              </Button>
-                            </>
-                          )}
-                          {isRoot && a.status === 'approved' && (
-                            <Button
-                              size='sm'
-                              onClick={async () => {
-                                await api.post(
-                                  `/api/user/affiliate/settlements/${a.id}/review`,
-                                  { paid: true }
-                                )
-                                await Promise.all([
-                                  refetchSettlements(),
-                                  refetchAffiliateStats(),
-                                ])
-                              }}
-                            >
-                              {t('Mark as paid')}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
               <div className='hidden overflow-auto rounded-md border lg:block'>
-                <table className='w-full min-w-[1100px] text-sm'>
+                <table className='w-full min-w-[1320px] text-sm'>
                   <thead>
                     <tr className='border-b text-left'>
+                      <th className='p-3'>{t('User ID')}</th>
                       <th className='p-3'>{t('Username')}</th>
+                      <th>{t('Subordinate remark')}</th>
                       <th>{t('Status')}</th>
                       <th>{t('Quota')}</th>
                       <th>{t('Consumption')}</th>
@@ -888,15 +1061,18 @@ export function Affiliate() {
                 </table>
               </div>
               <div className='space-y-3 lg:hidden'>
-                {isLoading ? (
+                {isLoading && (
                   <div className='text-muted-foreground rounded-md border p-6 text-center'>
                     {t('Loading...')}
                   </div>
-                ) : users.length === 0 ? (
+                )}
+                {!isLoading && users.length === 0 && (
                   <div className='text-muted-foreground rounded-md border p-6 text-center'>
                     {t('No direct subordinates')}
                   </div>
-                ) : (
+                )}
+                {!isLoading &&
+                  users.length > 0 &&
                   users.map((user) => (
                     <article
                       key={user.id}
@@ -907,11 +1083,10 @@ export function Affiliate() {
                           <div className='font-semibold break-all'>
                             {user.display_name || user.username}
                           </div>
-                          {user.display_name && (
-                            <div className='text-muted-foreground text-xs break-all'>
-                              {user.username} · #{user.id}
-                            </div>
-                          )}
+                          <div className='text-muted-foreground text-xs break-all'>
+                            {user.display_name && `${user.username} · `}
+                            {t('User ID')}: {user.id}
+                          </div>
                         </div>
                         <span className='shrink-0 rounded-full border px-2 py-1 text-xs'>
                           {user.status === 1 ? t('Enabled') : t('Disabled')}
@@ -949,6 +1124,21 @@ export function Affiliate() {
                         </span>{' '}
                         {user.group || '-'}
                       </div>
+                      <button
+                        type='button'
+                        className='bg-muted/30 hover:bg-muted/60 flex w-full items-start justify-between gap-2 rounded-md p-2 text-left text-sm'
+                        onClick={() => openRemark(user)}
+                      >
+                        <span className='min-w-0'>
+                          <span className='text-muted-foreground block text-xs'>
+                            {t('Subordinate remark')}
+                          </span>
+                          <span className='block break-words'>
+                            {user.sales_remark || '-'}
+                          </span>
+                        </span>
+                        <Pencil className='mt-0.5 size-4 shrink-0' />
+                      </button>
                       <div className='grid grid-cols-2 gap-x-3 gap-y-1 text-xs'>
                         <div>
                           <span className='text-muted-foreground'>
@@ -981,13 +1171,49 @@ export function Affiliate() {
                       </div>
                       {renderUserActions(user, true)}
                     </article>
-                  ))
-                )}
+                  ))}
               </div>
             </>
           )}
         </SectionPageLayout.Content>
       </SectionPageLayout>
+
+      <Dialog
+        open={remarkUser !== null}
+        onOpenChange={(open) => !open && setRemarkUser(null)}
+        title={t('Edit subordinate remark')}
+        description={
+          remarkUser
+            ? `${remarkUser.display_name || remarkUser.username} · ID ${remarkUser.id}`
+            : undefined
+        }
+        contentHeight='auto'
+        footer={
+          <>
+            <Button variant='outline' onClick={() => setRemarkUser(null)}>
+              {t('Cancel')}
+            </Button>
+            <Button disabled={submitting} onClick={saveRemark}>
+              {submitting ? t('Saving...') : t('Save')}
+            </Button>
+          </>
+        }
+      >
+        <div className='space-y-2'>
+          <Textarea
+            value={remarkValue}
+            maxLength={500}
+            rows={5}
+            placeholder={t(
+              'Add a private remark for managing this subordinate'
+            )}
+            onChange={(event) => setRemarkValue(event.target.value)}
+          />
+          <div className='text-muted-foreground text-right text-xs tabular-nums'>
+            {remarkValue.length}/500
+          </div>
+        </div>
+      </Dialog>
 
       {dialog?.type === 'consumption' && (
         <UserConsumptionDialog
@@ -1232,8 +1458,9 @@ export function Affiliate() {
               value={settlementEnd}
               onChange={(e) => {
                 setSettlementEnd(e.target.value)
-                if (dialog?.type === 'settlement')
+                if (dialog?.type === 'settlement') {
                   loadSettlementPreview(dialog.user, e.target.value)
+                }
               }}
             />
           </div>
@@ -1284,7 +1511,7 @@ export function Affiliate() {
               accept='image/*'
               multiple
               onChange={async (e) => {
-                const files = Array.from(e.target.files || []).slice(0, 3)
+                const files = [...(e.target.files || [])].slice(0, 3)
                 const keys: string[] = []
                 for (const file of files) {
                   if (file.size > 10 * 1024 * 1024) {

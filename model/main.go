@@ -293,6 +293,7 @@ func migrateDB() error {
 		&QuotaApplication{},
 		&QuotaApplicationAttachment{},
 		&AffiliateCommissionRule{},
+		&AffiliateUserNote{},
 		&AffiliateSettlementApplication{},
 		&AffiliateSettlementItem{},
 		&QuotaData{},

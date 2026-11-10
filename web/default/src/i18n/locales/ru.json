@@ -1,6 +1,12 @@
 {
   "translation": {
     "Task Log Support": "Поддержка журналов задач",
+    "Subordinate remark": "Заметка о подчинённом",
+    "Add subordinate remark": "Добавить заметку",
+    "Edit subordinate remark": "Изменить заметку",
+    "Subordinate remark saved": "Заметка сохранена",
+    "Add a private remark for managing this subordinate": "Добавьте личную заметку для управления этим подчинённым",
+    "Commission": "Комиссия",
     "User consumption": "Потребление пользователя",
     "View consumption details": "Посмотреть сведения о потреблении",
     "View and manage task logs for all users without access to aggregate cost statistics.": "Просмотр и управление журналами задач всех пользователей без доступа к сводной статистике расходов.",

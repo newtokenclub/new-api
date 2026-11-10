@@ -1,6 +1,12 @@
 {
   "translation": {
     "Task Log Support": "Support des journaux de tâches",
+    "Subordinate remark": "Note sur le subordonné",
+    "Add subordinate remark": "Ajouter une note",
+    "Edit subordinate remark": "Modifier la note",
+    "Subordinate remark saved": "Note enregistrée",
+    "Add a private remark for managing this subordinate": "Ajoutez une note privée pour gérer ce subordonné",
+    "Commission": "Commission",
     "User consumption": "Consommation utilisateur",
     "View consumption details": "Voir les détails de consommation",
     "View and manage task logs for all users without access to aggregate cost statistics.": "Afficher et gérer les journaux de tâches de tous les utilisateurs sans accéder aux statistiques de coûts agrégées.",

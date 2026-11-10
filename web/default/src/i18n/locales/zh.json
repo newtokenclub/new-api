@@ -1,6 +1,12 @@
 {
   "translation": {
     "Task Log Support": "任务日志支持",
+    "Subordinate remark": "下级备注",
+    "Add subordinate remark": "添加下级备注",
+    "Edit subordinate remark": "编辑下级备注",
+    "Subordinate remark saved": "下级备注已保存",
+    "Add a private remark for managing this subordinate": "添加仅用于管理该直属下级的私有备注",
+    "Commission": "结算佣金",
     "User consumption": "用户消费",
     "View consumption details": "查看消费详情",
     "View and manage task logs for all users without access to aggregate cost statistics.": "查看和管理所有用户的任务日志，但不能查看费用汇总统计。",

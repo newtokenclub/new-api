@@ -1,6 +1,12 @@
 {
   "translation": {
     "Task Log Support": "Hỗ trợ nhật ký tác vụ",
+    "Subordinate remark": "Ghi chú cấp dưới",
+    "Add subordinate remark": "Thêm ghi chú cấp dưới",
+    "Edit subordinate remark": "Sửa ghi chú cấp dưới",
+    "Subordinate remark saved": "Đã lưu ghi chú cấp dưới",
+    "Add a private remark for managing this subordinate": "Thêm ghi chú riêng để quản lý cấp dưới này",
+    "Commission": "Hoa hồng",
     "User consumption": "Mức tiêu thụ của người dùng",
     "View consumption details": "Xem chi tiết mức tiêu thụ",
     "View and manage task logs for all users without access to aggregate cost statistics.": "Xem và quản lý nhật ký tác vụ của tất cả người dùng nhưng không được truy cập thống kê chi phí tổng hợp.",

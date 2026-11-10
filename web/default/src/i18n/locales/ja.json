@@ -1,6 +1,12 @@
 {
   "translation": {
     "Task Log Support": "タスクログサポート",
+    "Subordinate remark": "部下メモ",
+    "Add subordinate remark": "部下メモを追加",
+    "Edit subordinate remark": "部下メモを編集",
+    "Subordinate remark saved": "部下メモを保存しました",
+    "Add a private remark for managing this subordinate": "この部下を管理するための非公開メモを追加します",
+    "Commission": "コミッション",
     "User consumption": "ユーザーの消費量",
     "View consumption details": "消費の詳細を表示",
     "View and manage task logs for all users without access to aggregate cost statistics.": "全ユーザーのタスクログを表示・管理できますが、費用集計にはアクセスできません。",

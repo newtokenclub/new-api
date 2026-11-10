@@ -89,6 +89,7 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/affiliate/users/:id", controller.GetAffiliateUser)
 				selfRoute.GET("/affiliate/users/:id/consumption", controller.GetAffiliateConsumption)
 				selfRoute.GET("/affiliate/users/:id/consumption-data", controller.GetAffiliateConsumptionData)
+				selfRoute.PUT("/affiliate/users/:id/remark", controller.UpdateAffiliateUserRemark)
 				selfRoute.POST("/affiliate/users/:id/transfer-quota", middleware.CriticalRateLimit(), controller.TransferAffiliateQuota)
 			selfRoute.POST("/affiliate/users/:id/groups", controller.AddAffiliateGroups)
 			selfRoute.GET("/affiliate/commission-rules", controller.ListAffiliateRules)
