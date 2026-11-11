@@ -90,6 +90,7 @@ export function ChannelsTable() {
   const {
     enableTagMode,
     idSort,
+    nameSort,
     batchMode,
     sensitiveVisible,
     setSensitiveVisible,
@@ -191,6 +192,14 @@ export function ChannelsTable() {
     } as const
   }, [sorting])
 
+  const effectiveSortParams = useMemo(() => {
+    if (sortParams.sort_by) return sortParams
+    if (nameSort) {
+      return { sort_by: 'name', sort_order: 'asc' } as const
+    }
+    return {}
+  }, [nameSort, sortParams])
+
   const handleSortingChange: OnChangeFn<SortingState> = (updater) => {
     setSorting((previous) => {
       const next = typeof updater === 'function' ? updater(previous) : updater
@@ -236,7 +245,7 @@ export function ChannelsTable() {
           : undefined,
       tag_mode: enableTagMode,
       id_sort: idSort,
-      ...sortParams,
+      ...effectiveSortParams,
       p: pagination.pageIndex + 1,
       page_size: pagination.pageSize,
     }),
@@ -259,7 +268,7 @@ export function ChannelsTable() {
               : undefined,
           tag_mode: enableTagMode,
           id_sort: idSort,
-          ...sortParams,
+          ...effectiveSortParams,
           p: pagination.pageIndex + 1,
           page_size: pagination.pageSize,
         })
@@ -279,7 +288,7 @@ export function ChannelsTable() {
               : undefined,
           tag_mode: enableTagMode,
           id_sort: idSort,
-          ...sortParams,
+          ...effectiveSortParams,
           p: pagination.pageIndex + 1,
           page_size: pagination.pageSize,
         })

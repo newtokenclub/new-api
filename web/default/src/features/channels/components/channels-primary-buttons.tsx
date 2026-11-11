@@ -75,6 +75,8 @@ export function ChannelsPrimaryButtons() {
     setEnableTagMode,
     idSort,
     setIdSort,
+    nameSort,
+    setNameSort,
     batchMode,
     setBatchMode,
     upstream,
@@ -98,6 +100,19 @@ export function ChannelsPrimaryButtons() {
   const handleIdSortToggle = (checked: boolean) => {
     localStorage.setItem('channels-id-sort', String(checked))
     setIdSort(checked)
+    if (checked) {
+      localStorage.setItem('channels-name-sort', 'false')
+      setNameSort(false)
+    }
+  }
+
+  const handleNameSortToggle = (checked: boolean) => {
+    localStorage.setItem('channels-name-sort', String(checked))
+    setNameSort(checked)
+    if (checked) {
+      localStorage.setItem('channels-id-sort', 'false')
+      setIdSort(false)
+    }
   }
 
   const handleBatchModeToggle = (checked: boolean) => {
@@ -144,6 +159,18 @@ export function ChannelsPrimaryButtons() {
             id='id-sort'
             checked={idSort}
             onCheckedChange={handleIdSortToggle}
+          />
+        </div>
+
+        <div className='hidden items-center gap-2 rounded-md border px-3 py-1.5 sm:flex'>
+          <SortAsc className='text-muted-foreground h-4 w-4' />
+          <Label htmlFor='name-sort' className='cursor-pointer text-sm'>
+            {t('Sort by Name')}
+          </Label>
+          <Switch
+            id='name-sort'
+            checked={nameSort}
+            onCheckedChange={handleNameSortToggle}
           />
         </div>
 
@@ -203,6 +230,15 @@ export function ChannelsPrimaryButtons() {
             >
               <SortAsc className='mr-2 h-4 w-4' />
               {t('Sort by ID')}
+            </DropdownMenuCheckboxItem>
+
+            <DropdownMenuCheckboxItem
+              className='sm:hidden'
+              checked={nameSort}
+              onCheckedChange={handleNameSortToggle}
+            >
+              <SortAsc className='mr-2 h-4 w-4' />
+              {t('Sort by Name')}
             </DropdownMenuCheckboxItem>
 
             <DropdownMenuSeparator className='sm:hidden' />
