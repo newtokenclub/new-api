@@ -88,7 +88,32 @@ func GetAffiliateUsers(c *gin.Context) {
 }
 
 func GetAffiliateStats(c *gin.Context) {
-	salesID := c.GetInt("id")
+	salesIDs := []int{c.GetInt("id")}
+	if c.GetInt("role") == common.RoleRootUser {
+		if rawSalesID := strings.TrimSpace(c.Query("sales_id")); rawSalesID != "" && rawSalesID != "all" {
+			salesID, err := strconv.Atoi(rawSalesID)
+			if err != nil || salesID <= 0 {
+				common.ApiErrorMsg(c, "invalid sales id")
+				return
+			}
+			var count int64
+			if err := model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id = ?", salesID).Count(&count).Error; err != nil {
+				common.ApiError(c, err)
+				return
+			}
+			if count == 0 {
+				common.ApiErrorMsg(c, "sales user has no settlement applications")
+				return
+			}
+			salesIDs = []int{salesID}
+		} else {
+			salesIDs = nil
+			if err := model.DB.Model(&model.AffiliateSettlementApplication{}).Distinct("sales_id").Pluck("sales_id", &salesIDs).Error; err != nil {
+				common.ApiError(c, err)
+				return
+			}
+		}
+	}
 	var stats struct {
 		DirectSubordinates int64 `json:"direct_subordinates"`
 		TotalConsumption int64 `json:"total_consumption"`
@@ -97,14 +122,41 @@ func GetAffiliateStats(c *gin.Context) {
 		PendingCommission int64 `json:"pending_commission"`
 		ApprovedCommission int64 `json:"approved_commission"`
 	}
-	if err := model.DB.Model(&model.User{}).Where("inviter_id = ? AND deleted_at IS NULL", salesID).Count(&stats.DirectSubordinates).Error; err != nil { common.ApiError(c, err); return }
-	if err := model.DB.Model(&model.User{}).Select("COALESCE(SUM(used_quota), 0)").Where("inviter_id = ? AND deleted_at IS NULL", salesID).Scan(&stats.TotalConsumption).Error; err != nil { common.ApiError(c, err); return }
-	settlements := model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id = ?", salesID)
-	if err := settlements.Where("status IN ?", []string{model.AffiliateSettlementApproved, model.AffiliateSettlementPaid}).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.TotalSettledCommission).Error; err != nil { common.ApiError(c, err); return }
-	if err := model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id = ? AND status = ?", salesID, model.AffiliateSettlementPaid).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.PaidCommission).Error; err != nil { common.ApiError(c, err); return }
-	if err := model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id = ? AND status = ?", salesID, model.AffiliateSettlementPending).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.PendingCommission).Error; err != nil { common.ApiError(c, err); return }
-	if err := model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id = ? AND status = ?", salesID, model.AffiliateSettlementApproved).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.ApprovedCommission).Error; err != nil { common.ApiError(c, err); return }
+	if len(salesIDs) > 0 {
+		if err := model.DB.Model(&model.User{}).Where("inviter_id IN ? AND deleted_at IS NULL", salesIDs).Count(&stats.DirectSubordinates).Error; err != nil { common.ApiError(c, err); return }
+		if err := model.DB.Model(&model.User{}).Select("COALESCE(SUM(used_quota), 0)").Where("inviter_id IN ? AND deleted_at IS NULL", salesIDs).Scan(&stats.TotalConsumption).Error; err != nil { common.ApiError(c, err); return }
+		settlementQuery := func() *gorm.DB {
+			return model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id IN ?", salesIDs)
+		}
+		if err := settlementQuery().Where("status IN ?", []string{model.AffiliateSettlementApproved, model.AffiliateSettlementPaid}).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.TotalSettledCommission).Error; err != nil { common.ApiError(c, err); return }
+		if err := settlementQuery().Where("status = ?", model.AffiliateSettlementPaid).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.PaidCommission).Error; err != nil { common.ApiError(c, err); return }
+		if err := settlementQuery().Where("status = ?", model.AffiliateSettlementPending).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.PendingCommission).Error; err != nil { common.ApiError(c, err); return }
+		if err := settlementQuery().Where("status = ?", model.AffiliateSettlementApproved).Select("COALESCE(SUM(total_commission), 0)").Scan(&stats.ApprovedCommission).Error; err != nil { common.ApiError(c, err); return }
+	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": stats})
+}
+
+func GetAffiliateSettlementSales(c *gin.Context) {
+	if c.GetInt("role") != common.RoleRootUser {
+		common.ApiErrorMsg(c, "root permission required")
+		return
+	}
+	var sales []struct {
+		Id          int    `json:"id"`
+		Username    string `json:"username"`
+		DisplayName string `json:"display_name"`
+	}
+	err := model.DB.Table("affiliate_settlement_applications AS a").
+		Select("DISTINCT u.id, u.username, u.display_name").
+		Joins("JOIN users AS u ON u.id = a.sales_id").
+		Where("u.deleted_at IS NULL").
+		Order("u.id DESC").
+		Scan(&sales).Error
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": sales})
 }
 
 func GetAffiliateGroups(c *gin.Context) {

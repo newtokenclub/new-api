@@ -85,6 +85,7 @@ func SetApiRouter(router *gin.Engine) {
 			{
 				selfRoute.GET("/affiliate/users", controller.GetAffiliateUsers)
 				selfRoute.GET("/affiliate/stats", controller.GetAffiliateStats)
+				selfRoute.GET("/affiliate/settlement-sales", middleware.RootAuth(), controller.GetAffiliateSettlementSales)
 				selfRoute.GET("/affiliate/groups", controller.GetAffiliateGroups)
 				selfRoute.GET("/affiliate/users/:id", controller.GetAffiliateUser)
 				selfRoute.GET("/affiliate/users/:id/consumption", controller.GetAffiliateConsumption)

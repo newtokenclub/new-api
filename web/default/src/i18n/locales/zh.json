@@ -136,6 +136,7 @@
     "Last 30 days": "最近 30 天",
     "Select a valid date range of no more than 366 days": "请选择不超过 366 天的有效日期范围",
     "All sales": "全部销售",
+    "Statistics scope": "统计范围",
     "R2 attachment storage": "R2 附件存储",
     "Used for quota application screenshots. Credentials are never displayed after saving.": "用于存储额度申请截图。保存后不会显示凭据。",
     "Enable R2 uploads": "启用 R2 上传",

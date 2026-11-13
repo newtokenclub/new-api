@@ -17,6 +17,13 @@ import { SectionPageLayout } from '@/components/layout'
 import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { UserConsumptionDialog } from '@/features/users/components/user-consumption-dialog'
@@ -96,9 +103,11 @@ export function Affiliate() {
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null)
   const [ruleFilter, setRuleFilter] = useState('')
   const [activeTab, setActiveTab] = useState('subordinates')
+  const [statsSalesID, setStatsSalesID] = useState('all')
   const [remarkUser, setRemarkUser] = useState<AffiliateUser | null>(null)
   const [remarkValue, setRemarkValue] = useState('')
   const isRoot = authUser?.role === 100
+  const statsScopeParams = isRoot ? { sales_id: statsSalesID } : undefined
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['affiliate-users', filter],
@@ -126,13 +135,28 @@ export function Affiliate() {
     enabled: isRoot,
   })
   const { data: settlementsData, refetch: refetchSettlements } = useQuery({
-    queryKey: ['affiliate-settlements'],
+    queryKey: ['affiliate-settlements', isRoot ? statsSalesID : authUser?.id],
     queryFn: async () =>
-      (await api.get('/api/user/affiliate/settlements')).data,
+      (
+        await api.get('/api/user/affiliate/settlements', {
+          params: statsScopeParams,
+        })
+      ).data,
   })
   const { data: statsResponse, refetch: refetchAffiliateStats } = useQuery({
-    queryKey: ['affiliate-stats', authUser?.id],
-    queryFn: async () => (await api.get('/api/user/affiliate/stats')).data,
+    queryKey: ['affiliate-stats', authUser?.id, statsSalesID],
+    queryFn: async () =>
+      (
+        await api.get('/api/user/affiliate/stats', {
+          params: statsScopeParams,
+        })
+      ).data,
+  })
+  const { data: settlementSalesResponse } = useQuery({
+    queryKey: ['affiliate-settlement-sales'],
+    queryFn: async () =>
+      (await api.get('/api/user/affiliate/settlement-sales')).data,
+    enabled: isRoot,
   })
   const loadSettlementPreview = async (
     user: AffiliateUser,
@@ -785,6 +809,36 @@ export function Affiliate() {
                   </p>
                 </section>
               )}
+              {isRoot && (
+                <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
+                  <span className='text-muted-foreground text-sm'>
+                    {t('Statistics scope')}
+                  </span>
+                  <Select
+                    value={statsSalesID}
+                    onValueChange={(value) => setStatsSalesID(value || 'all')}
+                  >
+                    <SelectTrigger className='w-full sm:w-72'>
+                      <SelectValue placeholder={t('All sales')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='all'>{t('All sales')}</SelectItem>
+                      {(settlementSalesResponse?.data || []).map(
+                        (sale: {
+                          id: number
+                          username: string
+                          display_name: string
+                        }) => (
+                          <SelectItem key={sale.id} value={String(sale.id)}>
+                            {sale.display_name || sale.username} ·{' '}
+                            {sale.username} · #{sale.id}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <section className='mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6'>
                 {[
                   [
@@ -843,6 +897,16 @@ export function Affiliate() {
               <div className='mb-4 rounded-md border p-3'>
                 <div className='mb-2 font-medium'>
                   {t('Settlement applications')}
+                  {isRoot && (
+                    <span className='text-muted-foreground ml-2 text-xs font-normal'>
+                      {statsSalesID === 'all'
+                        ? t('All sales')
+                        : (settlementSalesResponse?.data || []).find(
+                            (sale: { id: number }) =>
+                              String(sale.id) === statsSalesID
+                          )?.username || `#${statsSalesID}`}
+                    </span>
+                  )}
                 </div>
                 {(settlementsData?.data || []).length === 0 ? (
                   <div className='text-muted-foreground text-sm'>

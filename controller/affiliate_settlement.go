@@ -63,7 +63,25 @@ type affiliateSettlementListItem struct {
 
 func ListAffiliateSettlements(c *gin.Context){
 	q:=model.DB.Model(&model.AffiliateSettlementApplication{}).Preload("Items").Order("id DESC")
-	if c.GetInt("role")!=common.RoleRootUser {q=q.Where("sales_id = ?",c.GetInt("id"))}
+	if c.GetInt("role")!=common.RoleRootUser {
+		q=q.Where("sales_id = ?",c.GetInt("id"))
+	} else if rawSalesID := strings.TrimSpace(c.Query("sales_id")); rawSalesID != "" && rawSalesID != "all" {
+		salesID, err := strconv.Atoi(rawSalesID)
+		if err != nil || salesID <= 0 {
+			common.ApiErrorMsg(c, "invalid sales id")
+			return
+		}
+		var count int64
+		if err := model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id = ?", salesID).Count(&count).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if count == 0 {
+			common.ApiErrorMsg(c, "sales user has no settlement applications")
+			return
+		}
+		q=q.Where("sales_id = ?",salesID)
+	}
 	var rows []model.AffiliateSettlementApplication
 	if err:=q.Find(&rows).Error;err!=nil{common.ApiError(c,err);return}
 	config:=service.QuotaApplicationR2ConfigFromOptions()
