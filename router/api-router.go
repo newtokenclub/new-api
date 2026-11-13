@@ -588,6 +588,7 @@ func SetApiRouter(router *gin.Engine) {
 			taskRoute.GET("/self/stat", middleware.UserAuth(), controller.GetUserTaskStat)
 			taskRoute.GET("/", middleware.AdminAuth(), middleware.RequirePermission(authz.TaskLogViewAll), controller.GetAllTask)
 			taskRoute.GET("/stat", middleware.RootAuth(), controller.GetTaskStat)
+			taskRoute.POST("/:task_id/force-fail", middleware.RootAuth(), controller.ForceFailTask)
 		}
 
 		vendorRoute := apiRouter.Group("/vendors")

@@ -261,8 +261,12 @@ func updateVideoSingleTask(ctx context.Context, adaptor channel.TaskAdaptor, cha
 	if taskResult.Progress != "" {
 		task.Progress = taskResult.Progress
 	}
-	if err := task.Update(); err != nil {
+	won, err := task.UpdateWithStatus(preStatus)
+	if err != nil {
 		common.SysLog("UpdateVideoTask task error: " + err.Error())
+		shouldRefund = false
+	} else if !won {
+		logger.LogWarn(ctx, fmt.Sprintf("Task %s status changed concurrently, skip stale polling update", task.TaskID))
 		shouldRefund = false
 	}
 

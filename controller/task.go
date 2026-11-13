@@ -1,7 +1,10 @@
 package controller
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -12,6 +15,92 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+type forceFailTaskRequest struct {
+	Reason string `json:"reason"`
+}
+
+// ForceFailTask lets root administrators terminate an unfinished async task.
+// The status transition is guarded so a concurrent poller or duplicate request
+// cannot trigger a second refund.
+func ForceFailTask(c *gin.Context) {
+	taskID := strings.TrimSpace(c.Param("task_id"))
+	if taskID == "" {
+		common.ApiErrorMsg(c, "task id is required")
+		return
+	}
+	var req forceFailTaskRequest
+	if err := c.ShouldBindJSON(&req); err != nil && err.Error() != "EOF" {
+		common.ApiErrorMsg(c, "invalid request")
+		return
+	}
+	reason := strings.TrimSpace(req.Reason)
+	if reason == "" {
+		reason = "Task manually marked as failed by administrator"
+	}
+	if len(reason) > 1000 {
+		reason = reason[:1000]
+	}
+
+	task, exists, err := model.GetByOnlyTaskId(taskID)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !exists || task == nil {
+		common.ApiErrorMsg(c, "task not found")
+		return
+	}
+	if task.Status == model.TaskStatusSuccess || task.Status == model.TaskStatusFailure {
+		common.ApiErrorMsg(c, "task is already in a final state")
+		return
+	}
+
+	quota := task.Quota
+	previousStatus := task.Status
+	now := time.Now().Unix()
+	task.Status = model.TaskStatusFailure
+	task.Progress = "100%"
+	task.FinishTime = now
+	task.FailReason = reason
+	won, err := task.UpdateWithStatus(previousStatus)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !won {
+		common.ApiErrorMsg(c, "task status changed, please refresh and try again")
+		return
+	}
+
+	if quota > 0 {
+		if err := model.IncreaseUserQuota(task.UserId, quota, false); err != nil {
+			common.SysLog(fmt.Sprintf("failed to refund force-failed task %s: %v", taskID, err))
+			common.ApiErrorMsg(c, "task marked as failed, but refund failed; please check the task logs")
+			return
+		}
+		model.RecordTaskBillingLog(model.RecordTaskBillingLogParams{
+			UserId:        task.UserId,
+			LogType:       model.LogTypeRefund,
+			Content:       reason,
+			ChannelId:     task.ChannelId,
+			ModelName:     task.ModelName,
+			Quota:         quota,
+			CancelRequest: true,
+			Other: map[string]interface{}{
+				"task_id": task.TaskID,
+				"reason":  reason,
+				"source":  "root_force_fail",
+			},
+		})
+	}
+
+	common.ApiSuccess(c, gin.H{
+		"task_id": task.TaskID,
+		"status":  task.Status,
+		"refunded_quota": quota,
+	})
+}
 
 func GetAllTask(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)

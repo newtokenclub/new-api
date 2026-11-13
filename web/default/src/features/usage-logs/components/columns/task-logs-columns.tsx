@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
-import { Music } from 'lucide-react'
+import { CircleSlash2, Music } from 'lucide-react'
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { Dialog } from '@/components/dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatLogQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -37,6 +38,7 @@ import {
   type AudioClip,
 } from '../dialogs/audio-preview-dialog'
 import { FailReasonDialog } from '../dialogs/fail-reason-dialog'
+import { ForceFailTaskDialog } from '../dialogs/force-fail-task-dialog'
 import { useUsageLogsContext } from '../usage-logs-provider'
 import {
   createDurationColumn,
@@ -144,7 +146,10 @@ function AudioPreviewCell({ log }: { log: TaskLog }) {
   )
 }
 
-export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
+export function useTaskLogsColumns(
+  isAdmin: boolean,
+  isRoot = false
+): ColumnDef<TaskLog>[] {
   const { t } = useTranslation()
   const columns: ColumnDef<TaskLog>[] = [
     {
@@ -407,6 +412,46 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
       maxSize: 220,
     }
   )
+
+  if (isRoot) {
+    columns.push({
+      id: 'actions',
+      header: t('Actions'),
+      cell: function TaskActionsCell({ row }) {
+        const log = row.original
+        const [dialogOpen, setDialogOpen] = useState(false)
+        const isFinal =
+          log.status === TASK_STATUS.SUCCESS ||
+          log.status === TASK_STATUS.FAILURE
+
+        return (
+          <>
+            <Button
+              type='button'
+              variant='ghost'
+              size='sm'
+              className='text-destructive hover:text-destructive h-7 px-2'
+              disabled={isFinal}
+              onClick={(event) => {
+                event.stopPropagation()
+                setDialogOpen(true)
+              }}
+              title={t('Mark task as failed')}
+            >
+              <CircleSlash2 className='size-4' />
+              <span className='sr-only'>{t('Mark task as failed')}</span>
+            </Button>
+            <ForceFailTaskDialog
+              log={log}
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
+            />
+          </>
+        )
+      },
+      size: 90,
+    })
+  }
 
   return columns
 }

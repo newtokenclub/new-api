@@ -177,7 +177,12 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   })
 
   const logs = data?.items || []
-  const columns = useColumnsByCategory(logCategory, canViewAllLogs, isAdmin)
+  const columns = useColumnsByCategory(
+    logCategory,
+    canViewAllLogs,
+    isAdmin,
+    isRoot
+  )
   const isLoadingData = isLoading || (isFetching && !data)
 
   const { table } = useDataTable({
