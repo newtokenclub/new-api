@@ -11,6 +11,7 @@ var ModelList = []string{
 	"doubao-seedance-2-0-fast-260128",
 	"doubao-seedance-2-0-mini-260615",
 	"doubao-seedance-2-5-260628",
+	"doubao-seedance-2-5-flash-261115",
 }
 
 var ChannelName = "doubao-video"
@@ -47,6 +48,10 @@ var videoPriceTable = map[string]map[videoPriceKey]float64{
 		{hasVideo: true}:  42.0,
 		{is1080p: true, hasVideo: false}: 77.0,
 		{is1080p: true, hasVideo: true}: 46.0,
+	},
+	"doubao-seedance-2-5-flash-261115": {
+		{hasVideo: false}: 46.0,
+		{hasVideo: true}:  28.0,
 	},
 }
 
