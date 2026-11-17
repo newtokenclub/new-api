@@ -41,6 +41,7 @@ const (
 	TaskStatusFailure               = "FAILURE"
 	TaskStatusSuccess               = "SUCCESS"
 	TaskStatusUnknown               = "UNKNOWN"
+	TaskStatusFilterRunning          = "RUNNING"
 )
 
 type Task struct {
@@ -203,7 +204,9 @@ func applyTaskQueryFilters(query *gorm.DB, queryParams SyncTaskQueryParams, admi
 	if queryParams.Action != "" {
 		query = query.Where("action = ?", queryParams.Action)
 	}
-	if queryParams.Status != "" {
+	if queryParams.Status == TaskStatusFilterRunning {
+		query = query.Where("(status IS NULL OR status NOT IN ?)", []TaskStatus{TaskStatusSuccess, TaskStatusFailure})
+	} else if queryParams.Status != "" {
 		query = query.Where("status = ?", queryParams.Status)
 	}
 	if queryParams.StartTimestamp != 0 {
@@ -495,17 +498,21 @@ type TaskQuotaStat struct {
 // 运行中的定义与代码库其它位置一致：非终态（既不是 SUCCESS 也不是 FAILURE）。
 // 使用 SUM(CASE WHEN ...) + COALESCE，兼容 SQLite / MySQL / PostgreSQL。
 func TaskSumQuota(userId int, queryParams SyncTaskQueryParams) (TaskQuotaStat, error) {
-	var stat TaskQuotaStat
 	admin := userId <= 0
 	query := DB.Model(&Task{})
 	if !admin {
 		query = query.Where("user_id = ?", userId)
 	}
 	query = applyTaskQueryFilters(query, queryParams, admin)
+	return taskSumQuotaQuery(query)
+}
+
+func taskSumQuotaQuery(query *gorm.DB) (TaskQuotaStat, error) {
+	var stat TaskQuotaStat
 	err := query.Select(
 		"COALESCE(SUM(CASE WHEN status = ? THEN quota ELSE 0 END), 0) AS success_quota, "+
 			"COALESCE(SUM(CASE WHEN status = ? THEN quota ELSE 0 END), 0) AS failure_quota, "+
-			"COALESCE(SUM(CASE WHEN status NOT IN (?, ?) THEN quota ELSE 0 END), 0) AS running_quota",
+			"COALESCE(SUM(CASE WHEN status IS NULL OR status NOT IN (?, ?) THEN quota ELSE 0 END), 0) AS running_quota",
 		TaskStatusSuccess, TaskStatusFailure, TaskStatusSuccess, TaskStatusFailure,
 	).Scan(&stat).Error
 	return stat, err

@@ -5703,6 +5703,13 @@
     "All task statuses": "All task statuses",
     "Successful tasks": "Successful tasks",
     "Failed tasks": "Failed tasks",
+    "Running tasks": "Задачи в процессе",
+    "View tasks": "Просмотреть задачи",
+    "Back to direct subordinates": "Назад к прямым подчинённым",
+    "Subordinate tasks": "Задачи подчинённого",
+    "No task logs": "Нет журналов задач",
+    "Failed to load task logs": "Не удалось загрузить журналы задач",
+    "Page {{page}} of {{total}}": "Страница {{page}} из {{total}}",
     "Action required applications": "Заявки, требующие действий",
     "All records": "Все записи"
   }

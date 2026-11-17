@@ -54,6 +54,7 @@ function getTaskStatusLabel(
 ): string {
   if (status === 'SUCCESS') return t('Successful tasks')
   if (status === 'FAILURE') return t('Failed tasks')
+  if (status === 'RUNNING') return t('Running tasks')
   return t('All task statuses')
 }
 
@@ -274,6 +275,7 @@ export function TaskLogsFilterBar<TData>(props: TaskLogsFilterBarProps<TData>) {
           <SelectItem value='all'>{t('All task statuses')}</SelectItem>
           <SelectItem value='SUCCESS'>{t('Successful tasks')}</SelectItem>
           <SelectItem value='FAILURE'>{t('Failed tasks')}</SelectItem>
+          <SelectItem value='RUNNING'>{t('Running tasks')}</SelectItem>
         </SelectContent>
       </Select>
     </LogsFilterField>

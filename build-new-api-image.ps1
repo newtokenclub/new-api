@@ -26,12 +26,24 @@ if (-not $SkipGitPull) {
 # so already-pulled base images resolve offline.
 Write-Host "[2/4] Build Docker image: $ImageName"
 docker buildx build --builder desktop-linux --load -f Dockerfile.local -t $ImageName .
+if ($LASTEXITCODE -ne 0) {
+    throw "Docker image build failed with exit code $LASTEXITCODE."
+}
 
 Write-Host "[3/4] Save Docker image to: $TarName"
-if (Test-Path $TarName) {
-    Remove-Item $TarName -Force
+$TempTarName = "$TarName.$([guid]::NewGuid().ToString('N')).tmp"
+try {
+    docker save $ImageName -o $TempTarName
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker image save failed with exit code $LASTEXITCODE."
+    }
+
+    Move-Item -LiteralPath $TempTarName -Destination $TarName -Force
+} finally {
+    if (Test-Path -LiteralPath $TempTarName) {
+        Remove-Item -LiteralPath $TempTarName -Force
+    }
 }
-docker save $ImageName -o $TarName
 
 Write-Host "[4/4] Done"
 Write-Host "Image tar: $(Join-Path $RepoRoot $TarName)"

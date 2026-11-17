@@ -5703,6 +5703,13 @@
     "All task statuses": "All task statuses",
     "Successful tasks": "Successful tasks",
     "Failed tasks": "Failed tasks",
+    "Running tasks": "Tâches en cours",
+    "View tasks": "Voir les tâches",
+    "Back to direct subordinates": "Retour aux subordonnés directs",
+    "Subordinate tasks": "Tâches du subordonné",
+    "No task logs": "Aucun journal de tâche",
+    "Failed to load task logs": "Échec du chargement des journaux de tâches",
+    "Page {{page}} of {{total}}": "Page {{page}} sur {{total}}",
     "Action required applications": "Applications ? traiter",
     "All records": "Tous les enregistrements"
   }

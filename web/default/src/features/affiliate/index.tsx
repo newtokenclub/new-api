@@ -7,7 +7,8 @@ published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 */
 import { useQuery } from '@tanstack/react-query'
-import { BarChart3, Pencil } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { BarChart3, ListChecks, Pencil } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -74,6 +75,7 @@ const toUser = (user: AffiliateUser): User => ({
 
 export function Affiliate() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const authUser = useAuthStore((s) => s.auth.user)
   const [keyword, setKeyword] = useState('')
   const [filter, setFilter] = useState('')
@@ -450,6 +452,20 @@ export function Affiliate() {
   )
   const renderUserActions = (user: AffiliateUser, compact = false) => (
     <div className={compact ? 'grid grid-cols-2 gap-2' : 'flex gap-1'}>
+      <Button
+        size='sm'
+        variant='outline'
+        className={compact ? 'w-full' : undefined}
+        onClick={() =>
+          void navigate({
+            to: '/affiliate/tasks/$userId',
+            params: { userId: String(user.id) },
+          })
+        }
+      >
+        <ListChecks />
+        {t('View tasks')}
+      </Button>
       <Button
         size='sm'
         variant='outline'

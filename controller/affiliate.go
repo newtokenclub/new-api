@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
@@ -173,6 +174,63 @@ func GetAffiliateUser(c *gin.Context) {
 	var note model.AffiliateUserNote
 	if err := model.DB.Where("sales_id = ? AND target_user_id = ?", c.GetInt("id"), id).First(&note).Error; err == nil { item.SalesRemark = note.Remark } else if !errors.Is(err, gorm.ErrRecordNotFound) { common.ApiError(c, err); return }
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": item})
+}
+
+type AffiliateTaskDTO struct {
+	ID         int64  `json:"id"`
+	Platform   string `json:"platform"`
+	TaskID     string `json:"task_id"`
+	Action     string `json:"action"`
+	ModelName  string `json:"model_name"`
+	Status     string `json:"status"`
+	SubmitTime int64  `json:"submit_time"`
+	StartTime  int64  `json:"start_time"`
+	FinishTime int64  `json:"finish_time"`
+	Progress   string `json:"progress"`
+	FailReason string `json:"fail_reason"`
+}
+
+func GetAffiliateUserTasks(c *gin.Context) {
+	targetID, ok := parseAffiliateTarget(c)
+	if !ok {
+		return
+	}
+
+	page := common.GetPageQuery(c)
+	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	queryParams := model.SyncTaskQueryParams{
+		Platform:       constant.TaskPlatform(c.Query("platform")),
+		TaskID:         c.Query("task_id"),
+		ModelName:      c.Query("model_name"),
+		Status:         c.Query("status"),
+		Action:         c.Query("action"),
+		StartTimestamp: startTimestamp,
+		EndTimestamp:   endTimestamp,
+	}
+
+	user, err := model.GetUserById(targetID, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	tasks := model.TaskGetAllUserTask(targetID, page.GetStartIdx(), page.GetPageSize(), queryParams)
+	total := model.TaskCountAllUserTask(targetID, queryParams)
+	items := make([]AffiliateTaskDTO, 0, len(tasks))
+	for _, task := range tasks {
+		items = append(items, AffiliateTaskDTO{
+			ID: task.ID, Platform: string(task.Platform), TaskID: task.TaskID,
+			Action: task.Action, ModelName: task.ModelName, Status: string(task.Status),
+			SubmitTime: task.SubmitTime, StartTime: task.StartTime, FinishTime: task.FinishTime,
+			Progress: task.Progress, FailReason: task.FailReason,
+		})
+	}
+	page.SetTotal(int(total))
+	page.SetItems(items)
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{
+		"items": items, "total": total, "page": page.Page, "page_size": page.PageSize,
+		"user": gin.H{"id": user.Id, "username": user.Username, "display_name": user.DisplayName},
+	}})
 }
 
 func UpdateAffiliateUserRemark(c *gin.Context) {

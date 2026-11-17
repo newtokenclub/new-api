@@ -5703,6 +5703,13 @@
     "All task statuses": "All task statuses",
     "Successful tasks": "Successful tasks",
     "Failed tasks": "Failed tasks",
+    "Running tasks": "Running tasks",
+    "View tasks": "View tasks",
+    "Back to direct subordinates": "Back to direct subordinates",
+    "Subordinate tasks": "Subordinate tasks",
+    "No task logs": "No task logs",
+    "Failed to load task logs": "Failed to load task logs",
+    "Page {{page}} of {{total}}": "Page {{page}} of {{total}}",
     "Action required applications": "Action required",
     "All records": "All records"
   }

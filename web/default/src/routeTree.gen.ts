@@ -62,6 +62,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedBuyAitokenIndexRouteImport } from './routes/_authenticated/buy-aitoken/index'
 import { Route as AuthenticatedAffiliateIndexRouteImport } from './routes/_authenticated/affiliate/index'
+import { Route as AuthenticatedAffiliateTasksUserIdRouteImport } from './routes/_authenticated/affiliate/tasks/$userId'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -367,6 +368,12 @@ const AuthenticatedAffiliateIndexRoute =
     path: '/affiliate/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAffiliateTasksUserIdRoute =
+  AuthenticatedAffiliateTasksUserIdRouteImport.update({
+    id: '/affiliate/tasks/$userId',
+    path: '/affiliate/tasks/$userId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsageLogsSectionRoute =
   AuthenticatedUsageLogsSectionRouteImport.update({
     id: '/usage-logs/$section',
@@ -523,6 +530,7 @@ export interface FileRoutesByFullPath {
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/affiliate/': typeof AuthenticatedAffiliateIndexRoute
+  '/affiliate/tasks/$userId': typeof AuthenticatedAffiliateTasksUserIdRoute
   '/buy-aitoken/': typeof AuthenticatedBuyAitokenIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -595,6 +603,7 @@ export interface FileRoutesByTo {
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/affiliate': typeof AuthenticatedAffiliateIndexRoute
+  '/affiliate/tasks/$userId': typeof AuthenticatedAffiliateTasksUserIdRoute
   '/buy-aitoken': typeof AuthenticatedBuyAitokenIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -671,6 +680,7 @@ export interface FileRoutesById {
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/affiliate/': typeof AuthenticatedAffiliateIndexRoute
+  '/_authenticated/affiliate/tasks/$userId': typeof AuthenticatedAffiliateTasksUserIdRoute
   '/_authenticated/buy-aitoken/': typeof AuthenticatedBuyAitokenIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -746,6 +756,7 @@ export interface FileRouteTypes {
     | '/models/$section'
     | '/usage-logs/$section'
     | '/affiliate/'
+    | '/affiliate/tasks/$userId'
     | '/buy-aitoken/'
     | '/channels/'
     | '/dashboard/'
@@ -818,6 +829,7 @@ export interface FileRouteTypes {
     | '/models/$section'
     | '/usage-logs/$section'
     | '/affiliate'
+    | '/affiliate/tasks/$userId'
     | '/buy-aitoken'
     | '/channels'
     | '/dashboard'
@@ -893,6 +905,7 @@ export interface FileRouteTypes {
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/affiliate/'
+    | '/_authenticated/affiliate/tasks/$userId'
     | '/_authenticated/buy-aitoken/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
@@ -1328,6 +1341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAffiliateIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/affiliate/tasks/$userId': {
+      id: '/_authenticated/affiliate/tasks/$userId'
+      path: '/affiliate/tasks/$userId'
+      fullPath: '/affiliate/tasks/$userId'
+      preLoaderRoute: typeof AuthenticatedAffiliateTasksUserIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/usage-logs/$section': {
       id: '/_authenticated/usage-logs/$section'
       path: '/usage-logs/$section'
@@ -1564,6 +1584,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedAffiliateIndexRoute: typeof AuthenticatedAffiliateIndexRoute
+  AuthenticatedAffiliateTasksUserIdRoute: typeof AuthenticatedAffiliateTasksUserIdRoute
   AuthenticatedBuyAitokenIndexRoute: typeof AuthenticatedBuyAitokenIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -1596,6 +1617,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedAffiliateIndexRoute: AuthenticatedAffiliateIndexRoute,
+  AuthenticatedAffiliateTasksUserIdRoute: AuthenticatedAffiliateTasksUserIdRoute,
   AuthenticatedBuyAitokenIndexRoute: AuthenticatedBuyAitokenIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,

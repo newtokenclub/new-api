@@ -5703,6 +5703,13 @@
     "All task statuses": "All task statuses",
     "Successful tasks": "Successful tasks",
     "Failed tasks": "Failed tasks",
+    "Running tasks": "Tác vụ đang chạy",
+    "View tasks": "Xem tác vụ",
+    "Back to direct subordinates": "Quay lại danh sách cấp dưới trực tiếp",
+    "Subordinate tasks": "Tác vụ của cấp dưới",
+    "No task logs": "Không có nhật ký tác vụ",
+    "Failed to load task logs": "Không thể tải nhật ký tác vụ",
+    "Page {{page}} of {{total}}": "Trang {{page}} / {{total}}",
     "Action required applications": "Đơn cần xử lý",
     "All records": "Tất cả bản ghi"
   }
