@@ -153,6 +153,15 @@ const BILLING_SECTIONS = [
           CreemWebhookSecret: settings.CreemWebhookSecret,
           CreemTestMode: settings.CreemTestMode,
           CreemProducts: settings.CreemProducts,
+          // PaymentSetting is exposed as a namespaced config. The token is
+          // intentionally omitted by the API and must remain blank here.
+          WechatNativeEnabled:
+            settings['payment_setting.wechat_native_enabled'] ?? false,
+          WechatNativeNodeURL:
+            settings['payment_setting.wechat_native_node_url'] ?? '',
+          WechatNativeNodeToken: '',
+          WechatNativeNotifyURL:
+            settings['payment_setting.wechat_native_notify_url'] ?? '',
         }}
         waffoDefaultValues={{
           WaffoEnabled: settings.WaffoEnabled ?? false,

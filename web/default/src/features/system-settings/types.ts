@@ -296,6 +296,10 @@ export type BillingSettings = {
   'payment_setting.compliance_confirmed_at': number
   'payment_setting.compliance_confirmed_by': number
   'payment_setting.compliance_confirmed_ip': string
+  'payment_setting.wechat_native_enabled': boolean
+  'payment_setting.wechat_native_node_url': string
+  'payment_setting.wechat_native_node_token': string
+  'payment_setting.wechat_native_notify_url': string
   StripeApiSecret: string
   StripeWebhookSecret: string
   StripePriceId: string

@@ -30,6 +30,7 @@ const (
 	PaymentMethodWaffo        = "waffo"
 	PaymentMethodWaffoPancake = "waffo_pancake"
 	PaymentMethodBalance      = "balance"
+	PaymentMethodWechatNative = "wechat_native"
 )
 
 const (
@@ -39,6 +40,7 @@ const (
 	PaymentProviderWaffo        = "waffo"
 	PaymentProviderWaffoPancake = "waffo_pancake"
 	PaymentProviderBalance      = "balance"
+	PaymentProviderWechatNative = "wechat_native"
 )
 
 var (
@@ -394,6 +396,36 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 	// 事务外记录日志，避免阻塞
 	RecordTopupLog(userId, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, "admin")
 	return nil
+}
+
+// CompleteWechatNativeTopUp finalizes a verified Native payment exactly once.
+func CompleteWechatNativeTopUp(tradeNo string, callerIp string) error {
+	if tradeNo == "" {
+		return ErrTopUpNotFound
+	}
+	var userId int
+	var quotaToAdd int
+	var payMoney float64
+	var paymentMethod string
+	refCol := "`trade_no`"
+	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) { refCol = `"trade_no"` }
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var topUp TopUp
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where(refCol+" = ?", tradeNo).First(&topUp).Error; err != nil { return ErrTopUpNotFound }
+		if topUp.PaymentProvider != PaymentProviderWechatNative { return ErrPaymentMethodMismatch }
+		if topUp.Status == common.TopUpStatusSuccess { return nil }
+		if topUp.Status != common.TopUpStatusPending { return ErrTopUpStatusInvalid }
+		quotaToAdd = int(decimal.NewFromInt(topUp.Amount).Mul(decimal.NewFromFloat(common.QuotaPerUnit)).IntPart())
+		if quotaToAdd <= 0 { return errors.New("invalid topup amount") }
+		topUp.Status = common.TopUpStatusSuccess
+		topUp.CompleteTime = common.GetTimestamp()
+		if err := tx.Save(&topUp).Error; err != nil { return err }
+		if err := tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota + ?", quotaToAdd)).Error; err != nil { return err }
+		userId, payMoney, paymentMethod = topUp.UserId, topUp.Money, topUp.PaymentMethod
+		return nil
+	})
+	if err == nil { RecordTopupLog(userId, fmt.Sprintf("微信Native充值成功，充值额度：%s，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, PaymentProviderWechatNative) }
+	return err
 }
 func RechargeCreem(referenceId string, customerEmail string, customerName string, callerIp string) (err error) {
 	if referenceId == "" {

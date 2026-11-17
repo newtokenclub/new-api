@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
@@ -24,6 +25,7 @@ import { InvoicePanel } from '@/features/invoices/invoice-panel'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
@@ -43,6 +45,7 @@ import {
   useWaffoPayment,
   useWaffoPancakePayment,
 } from './hooks'
+import { queryWechatNativeOrders } from './api'
 import {
   getDefaultPaymentType,
   getMinTopupAmount,
@@ -93,6 +96,8 @@ export function Wallet(props: WalletProps) {
     processing,
     calculatePaymentAmount,
     processPayment,
+    wechatNativeOrder,
+    clearWechatNativeOrder,
   } = usePayment()
   const {
     affiliateLink,
@@ -125,6 +130,20 @@ export function Wallet(props: WalletProps) {
   useEffect(() => {
     fetchUser()
   }, [fetchUser])
+
+  useEffect(() => {
+    if (!wechatNativeOrder) return
+    const timer = window.setInterval(async () => {
+      try {
+        const result = await queryWechatNativeOrders()
+        if (!result.orders?.some((order) => order.trade_no === wechatNativeOrder.trade_no)) {
+          clearWechatNativeOrder()
+          await fetchUser()
+        }
+      } catch { /* callback/query may be temporarily unavailable */ }
+    }, 3000)
+    return () => window.clearInterval(timer)
+  }, [wechatNativeOrder, clearWechatNativeOrder, fetchUser])
 
   useEffect(() => {
     if (props.initialShowHistory) {
@@ -343,6 +362,13 @@ export function Wallet(props: WalletProps) {
         discountRate={getDiscountRate()}
         usdExchangeRate={effectiveUsdExchangeRate}
       />
+
+      <Dialog open={!!wechatNativeOrder} onOpenChange={(open) => !open && clearWechatNativeOrder()}>
+        <DialogContent className='sm:max-w-sm'>
+          <DialogHeader><DialogTitle>{t('Scan with WeChat to pay')}</DialogTitle></DialogHeader>
+          {wechatNativeOrder && <div className='flex flex-col items-center gap-3 py-3'><QRCodeSVG value={wechatNativeOrder.code_url} size={240} includeMargin /><p className='text-muted-foreground text-center text-sm'>{t('Keep this window open. Balance will refresh after payment confirmation.')}</p></div>}
+        </DialogContent>
+      </Dialog>
 
       <TransferDialog
         open={transferDialogOpen}

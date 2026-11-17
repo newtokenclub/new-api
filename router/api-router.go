@@ -132,6 +132,8 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.POST("/waffo/pay", middleware.CriticalRateLimit(), controller.RequestWaffoPay)
 				selfRoute.POST("/waffo-pancake/amount", controller.RequestWaffoPancakeAmount)
 				selfRoute.POST("/waffo-pancake/pay", middleware.CriticalRateLimit(), controller.RequestWaffoPancakePay)
+				selfRoute.POST("/wechat-native/pay", middleware.CriticalRateLimit(), controller.RequestWechatNativePay)
+				selfRoute.GET("/wechat-native/orders", controller.QueryWechatNativeOrders)
 				selfRoute.POST("/aff_transfer", controller.TransferAffQuota)
 				selfRoute.PUT("/setting", controller.UpdateUserSetting)
 				selfRoute.GET("/invoice", controller.GetInvoiceOverview)
@@ -232,6 +234,7 @@ func SetApiRouter(router *gin.Engine) {
 
 		// Subscription payment callbacks (no auth)
 		apiRouter.POST("/subscription/epay/notify", anonymousRequestBodyLimit, controller.SubscriptionEpayNotify)
+		apiRouter.POST("/wechat-native/notify", anonymousRequestBodyLimit, controller.WechatNativeNotify)
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/return", controller.SubscriptionEpayReturn)
 		apiRouter.POST("/subscription/epay/return", anonymousRequestBodyLimit, controller.SubscriptionEpayReturn)

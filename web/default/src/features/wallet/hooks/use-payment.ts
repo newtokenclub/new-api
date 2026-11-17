@@ -25,6 +25,7 @@ import {
   calculateStripeAmount,
   calculateWaffoPancakeAmount,
   requestPayment,
+  requestWechatNativePayment,
   requestStripePayment,
   isApiSuccess,
 } from '../api'
@@ -42,6 +43,7 @@ export function usePayment() {
   const [amount, setAmount] = useState<number>(0)
   const [calculating, setCalculating] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [wechatNativeOrder, setWechatNativeOrder] = useState<{ trade_no: string; code_url: string } | null>(null)
 
   // Calculate payment amount
   const calculatePaymentAmount = useCallback(
@@ -90,7 +92,9 @@ export function usePayment() {
               amount,
               payment_method: 'stripe',
             })
-          : await requestPayment({
+          : paymentType === 'wechat_native'
+            ? await requestWechatNativePayment({ amount })
+            : await requestPayment({
               amount,
               payment_method: paymentType,
             })
@@ -109,6 +113,12 @@ export function usePayment() {
 
         // Handle non-Stripe payment
         if (!isStripe && response.data) {
+          const nativeData = response.data as Record<string, unknown>
+          if (paymentType === 'wechat_native' && nativeData.code_url && nativeData.trade_no) {
+            setWechatNativeOrder({ trade_no: String(nativeData.trade_no), code_url: String(nativeData.code_url) })
+            toast.success(i18next.t('Scan the QR code to pay'))
+            return true
+          }
           const url = (response as unknown as { url?: string }).url
           if (url) {
             submitPaymentForm(url, response.data)
@@ -135,5 +145,7 @@ export function usePayment() {
     calculatePaymentAmount,
     processPayment,
     setAmount,
+    wechatNativeOrder,
+    clearWechatNativeOrder: () => setWechatNativeOrder(null),
   }
 }

@@ -11,6 +11,10 @@ type PaymentSetting struct {
 	ComplianceConfirmedAt  int64  `json:"compliance_confirmed_at"`
 	ComplianceConfirmedBy  int    `json:"compliance_confirmed_by"`
 	ComplianceConfirmedIP  string `json:"compliance_confirmed_ip"`
+	WechatNativeEnabled   bool   `json:"wechat_native_enabled"`
+	WechatNativeNodeURL   string `json:"wechat_native_node_url"`
+	WechatNativeNodeToken string `json:"wechat_native_node_token"`
+	WechatNativeNotifyURL  string `json:"wechat_native_notify_url"`
 }
 
 const CurrentComplianceTermsVersion = "v1"

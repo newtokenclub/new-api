@@ -30,6 +30,9 @@ func GetTopUpInfo(c *gin.Context) {
 	if !complianceConfirmed {
 		payMethods = []map[string]string{}
 	}
+	if complianceConfirmed && operation_setting.GetPaymentSetting().WechatNativeEnabled && operation_setting.GetPaymentSetting().WechatNativeNodeURL != "" && operation_setting.GetPaymentSetting().WechatNativeNodeToken != "" && operation_setting.GetPaymentSetting().WechatNativeNotifyURL != "" {
+		payMethods = append(payMethods, map[string]string{"name": "WeChat Native", "type": model.PaymentMethodWechatNative, "color": "#07c160", "min_topup": strconv.Itoa(operation_setting.MinTopUp)})
+	}
 
 	// 如果启用了 Stripe 支付，添加到支付方法列表
 	if isStripeTopUpEnabled() {
@@ -98,6 +101,7 @@ func GetTopUpInfo(c *gin.Context) {
 
 	data := gin.H{
 		"enable_online_topup":              isEpayTopUpEnabled(),
+		"enable_wechat_native_topup":       operation_setting.GetPaymentSetting().WechatNativeEnabled && operation_setting.GetPaymentSetting().WechatNativeNodeURL != "" && operation_setting.GetPaymentSetting().WechatNativeNodeToken != "" && operation_setting.GetPaymentSetting().WechatNativeNotifyURL != "",
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
 		"enable_waffo_topup":               enableWaffo,

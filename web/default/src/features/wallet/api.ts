@@ -109,6 +109,16 @@ export async function requestPayment(
   }
 }
 
+export async function requestWechatNativePayment(request: AmountRequest): Promise<PaymentResponse> {
+  const res = await api.post('/api/user/wechat-native/pay', request, { skipBusinessError: true } as Record<string, unknown>)
+  return res.data
+}
+
+export async function queryWechatNativeOrders(): Promise<{ orders: Array<{ trade_no: string; status: string }> }> {
+  const res = await api.get('/api/user/wechat-native/orders')
+  return res.data
+}
+
 /**
  * Request Stripe payment
  */

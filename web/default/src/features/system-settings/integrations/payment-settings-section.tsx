@@ -159,6 +159,10 @@ const paymentSchema = z.object({
       })
     }
   }),
+  WechatNativeEnabled: z.boolean(),
+  WechatNativeNodeURL: z.string(),
+  WechatNativeNodeToken: z.string(),
+  WechatNativeNotifyURL: z.string(),
   WaffoEnabled: z.boolean(),
   WaffoApiKey: z.string(),
   WaffoPrivateKey: z.string(),
@@ -437,6 +441,10 @@ export function PaymentSettingsSection({
       CreemWebhookSecret: values.CreemWebhookSecret.trim(),
       CreemTestMode: values.CreemTestMode,
       CreemProducts: values.CreemProducts.trim(),
+      WechatNativeEnabled: values.WechatNativeEnabled,
+      WechatNativeNodeURL: values.WechatNativeNodeURL.trim(),
+      WechatNativeNodeToken: values.WechatNativeNodeToken.trim(),
+      WechatNativeNotifyURL: values.WechatNativeNotifyURL.trim(),
       WaffoEnabled: values.WaffoEnabled,
       WaffoSandbox: values.WaffoSandbox,
       WaffoMerchantId: values.WaffoMerchantId.trim(),
@@ -482,6 +490,10 @@ export function PaymentSettingsSection({
       CreemWebhookSecret: initialRef.current.CreemWebhookSecret.trim(),
       CreemTestMode: initialRef.current.CreemTestMode,
       CreemProducts: initialRef.current.CreemProducts.trim(),
+      WechatNativeEnabled: initialRef.current.WechatNativeEnabled,
+      WechatNativeNodeURL: initialRef.current.WechatNativeNodeURL.trim(),
+      WechatNativeNodeToken: initialRef.current.WechatNativeNodeToken.trim(),
+      WechatNativeNotifyURL: initialRef.current.WechatNativeNotifyURL.trim(),
       WaffoEnabled: initialRef.current.WaffoEnabled,
       WaffoSandbox: initialRef.current.WaffoSandbox,
       WaffoMerchantId: initialRef.current.WaffoMerchantId.trim(),
@@ -628,6 +640,11 @@ export function PaymentSettingsSection({
     ) {
       updates.push({ key: 'CreemProducts', value: sanitized.CreemProducts })
     }
+
+    if (sanitized.WechatNativeEnabled !== initial.WechatNativeEnabled) updates.push({ key: 'payment_setting.wechat_native_enabled', value: sanitized.WechatNativeEnabled })
+    if (sanitized.WechatNativeNodeURL !== initial.WechatNativeNodeURL) updates.push({ key: 'payment_setting.wechat_native_node_url', value: sanitized.WechatNativeNodeURL })
+    if (sanitized.WechatNativeNotifyURL !== initial.WechatNativeNotifyURL) updates.push({ key: 'payment_setting.wechat_native_notify_url', value: sanitized.WechatNativeNotifyURL })
+    if (sanitized.WechatNativeNodeToken) updates.push({ key: 'payment_setting.wechat_native_node_token', value: sanitized.WechatNativeNodeToken })
 
     if (sanitized.WaffoEnabled !== initial.WaffoEnabled) {
       updates.push({ key: 'WaffoEnabled', value: sanitized.WaffoEnabled })
@@ -877,9 +894,10 @@ export function PaymentSettingsSection({
           />
           <Tabs defaultValue='general' className='min-w-0'>
             <div className='overflow-x-auto pb-1'>
-              <TabsList className='grid min-w-[44rem] grid-cols-6'>
+              <TabsList className='grid min-w-[52rem] grid-cols-7'>
                 <TabsTrigger value='general'>{t('General')}</TabsTrigger>
                 <TabsTrigger value='epay'>Epay</TabsTrigger>
+                <TabsTrigger value='wechat-native'>{t('WeChat Native')}</TabsTrigger>
                 <TabsTrigger value='stripe'>{t('Stripe')}</TabsTrigger>
                 <TabsTrigger value='creem'>Creem</TabsTrigger>
                 <TabsTrigger value='waffo-pancake'>Waffo Pancake</TabsTrigger>
@@ -1238,6 +1256,27 @@ export function PaymentSettingsSection({
                     )}
                   />
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value='wechat-native' className={paymentTabContentClassName}>
+              <div className='space-y-4'>
+                <h3 className='text-lg font-medium'>{t('WeChat Native Gateway')}</h3>
+                <FormField control={form.control} name='WechatNativeEnabled' render={({ field }) => (
+                  <FormItem className='flex items-center justify-between rounded-md border p-4'>
+                    <div><FormLabel>{t('Enable WeChat Native payment')}</FormLabel><FormDescription>{t('PC QR-code payment handled by the configured payment node')}</FormDescription></div>
+                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name='WechatNativeNodeURL' render={({ field }) => (
+                  <FormItem><FormLabel>{t('Payment node URL')}</FormLabel><FormControl><Input placeholder='https://www.aimh8.com' {...field} /></FormControl><FormDescription>{t('The nodeserve base URL, without a path')}</FormDescription><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name='WechatNativeNotifyURL' render={({ field }) => (
+                  <FormItem><FormLabel>{t('New-api payment callback URL')}</FormLabel><FormControl><Input placeholder='https://your-new-api-host/api/wechat-native/notify' {...field} /></FormControl><FormDescription>{t('Must be reachable by the payment node')}</FormDescription><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name='WechatNativeNodeToken' render={({ field }) => (
+                  <FormItem><FormLabel>{t('Payment node shared token')}</FormLabel><FormControl><Input type='password' autoComplete='new-password' placeholder={t('Enter new token to update')} {...field} /></FormControl><FormDescription>{t('Must match the internal token configured on the payment node')}</FormDescription><FormMessage /></FormItem>
+                )} />
               </div>
             </TabsContent>
 
