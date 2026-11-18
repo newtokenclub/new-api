@@ -116,7 +116,15 @@ export async function requestWechatNativePayment(request: AmountRequest): Promis
 
 export async function queryWechatNativeOrders(): Promise<{ orders: Array<{ trade_no: string; status: string }> }> {
   const res = await api.get('/api/user/wechat-native/orders')
-  return res.data
+  // The API uses the standard { success, data } envelope. Normalize it here
+  // so callers do not accidentally treat the missing top-level `orders` as a
+  // completed payment and close the QR dialog.
+  const payload = res.data as {
+    data?: { orders?: Array<{ trade_no: string; status: string }> }
+    orders?: Array<{ trade_no: string; status: string }>
+  }
+  const normalized = payload?.data ?? payload
+  return { orders: Array.isArray(normalized?.orders) ? normalized.orders : [] }
 }
 
 /**

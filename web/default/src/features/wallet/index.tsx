@@ -136,7 +136,9 @@ export function Wallet(props: WalletProps) {
     const timer = window.setInterval(async () => {
       try {
         const result = await queryWechatNativeOrders()
-        if (!result.orders?.some((order) => order.trade_no === wechatNativeOrder.trade_no)) {
+        // Keep the dialog open for malformed or transient responses. An empty
+        // valid order list means the backend has confirmed the order.
+        if (Array.isArray(result.orders) && !result.orders.some((order) => order.trade_no === wechatNativeOrder.trade_no)) {
           clearWechatNativeOrder()
           await fetchUser()
         }
