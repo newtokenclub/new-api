@@ -5711,6 +5711,20 @@
     "Failed to load task logs": "Не удалось загрузить журналы задач",
     "Page {{page}} of {{total}}": "Страница {{page}} из {{total}}",
     "Action required applications": "Заявки, требующие действий",
-    "All records": "Все записи"
+    "All records": "Все записи",
+    "WeChat Native": "Оплата по QR-коду WeChat",
+    "WeChat Native Gateway": "Платёжный шлюз WeChat Native",
+    "Enable WeChat Native payment": "Включить оплату WeChat Native",
+    "PC QR-code payment handled by the configured payment node": "Оплата по QR-коду на ПК через настроенный платёжный узел",
+    "Payment node URL": "URL платёжного узла",
+    "The nodeserve base URL, without a path": "Базовый URL nodeserve без пути",
+    "New-api payment callback URL": "URL обратного вызова платежа New API",
+    "Must be reachable by the payment node": "Адрес должен быть доступен платёжному узлу",
+    "Payment node shared token": "Общий токен платёжного узла",
+    "Enter new token to update": "Введите новый токен для обновления",
+    "Must match the internal token configured on the payment node": "Должен совпадать с внутренним токеном платёжного узла",
+    "Scan the QR code to pay": "Отсканируйте QR-код для оплаты",
+    "Scan with WeChat to pay": "Отсканируйте код в WeChat для оплаты",
+    "Keep this window open. Balance will refresh after payment confirmation.": "Не закрывайте это окно. Баланс обновится после подтверждения платежа."
   }
 }

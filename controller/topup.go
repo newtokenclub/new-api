@@ -505,6 +505,10 @@ func GetUserTopUps(c *gin.Context) {
 
 // GetAllTopUps 管理员获取全平台充值记录
 func GetAllTopUps(c *gin.Context) {
+	if c.GetInt("role") != common.RoleRootUser {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "root permission required"})
+		return
+	}
 	pageInfo := common.GetPageQuery(c)
 	keyword := c.Query("keyword")
 
@@ -534,6 +538,10 @@ type AdminCompleteTopupRequest struct {
 
 // AdminCompleteTopUp 管理员补单接口
 func AdminCompleteTopUp(c *gin.Context) {
+	if c.GetInt("role") != common.RoleRootUser {
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "root permission required"})
+		return
+	}
 	var req AdminCompleteTopupRequest
 	if err := c.ShouldBindJSON(&req); err != nil || req.TradeNo == "" {
 		common.ApiErrorMsg(c, "参数错误")

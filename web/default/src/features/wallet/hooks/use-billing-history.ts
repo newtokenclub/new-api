@@ -20,7 +20,7 @@ import i18next from 'i18next'
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 
-import { useIsAdmin } from '@/hooks/use-admin'
+import { useIsRoot } from '@/hooks/use-root'
 
 import {
   getUserBillingHistory,
@@ -43,7 +43,7 @@ interface UseBillingHistoryOptions {
 
 export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
   const { initialPage = 1, initialPageSize = 10 } = options
-  const isAdmin = useIsAdmin()
+  const isRoot = useIsRoot()
 
   const [records, setRecords] = useState<BillingHistoryRecord[]>([])
   const [total, setTotal] = useState(0)
@@ -59,7 +59,7 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
   const fetchBillingHistory = useCallback(async () => {
     setLoading(true)
     try {
-      const response = isAdmin
+      const response = isRoot
         ? await getAllBillingHistory(page, pageSize, keyword)
         : await getUserBillingHistory(page, pageSize, keyword)
 
@@ -82,14 +82,14 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
     } finally {
       setLoading(false)
     }
-  }, [isAdmin, page, pageSize, keyword])
+  }, [isRoot, page, pageSize, keyword])
 
   /**
    * Complete a pending order (admin only)
    */
   const handleCompleteOrder = useCallback(
     async (tradeNo: string) => {
-      if (!isAdmin) {
+      if (!isRoot) {
         toast.error(i18next.t('Admin access required'))
         return false
       }
@@ -115,7 +115,7 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
         setCompleting(false)
       }
     },
-    [isAdmin, fetchBillingHistory]
+    [isRoot, fetchBillingHistory]
   )
 
   /**
@@ -154,7 +154,7 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
     keyword,
     loading,
     completing,
-    isAdmin,
+    isRoot,
     handlePageChange,
     handlePageSizeChange,
     handleSearch,

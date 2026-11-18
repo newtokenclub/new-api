@@ -5711,6 +5711,20 @@
     "Failed to load task logs": "加载任务日志失败",
     "Page {{page}} of {{total}}": "第 {{page}} / {{total}} 页",
     "Action required applications": "待处理申请",
-    "All records": "全部记录"
+    "All records": "全部记录",
+    "WeChat Native": "微信扫码支付",
+    "WeChat Native Gateway": "微信 Native 支付网关",
+    "Enable WeChat Native payment": "启用微信 Native 支付",
+    "PC QR-code payment handled by the configured payment node": "通过已配置的支付节点处理 PC 端扫码支付",
+    "Payment node URL": "支付节点地址",
+    "The nodeserve base URL, without a path": "nodeserve 的基础地址，请勿包含接口路径",
+    "New-api payment callback URL": "New API 支付回调地址",
+    "Must be reachable by the payment node": "该地址必须能被支付节点访问",
+    "Payment node shared token": "支付节点共享令牌",
+    "Enter new token to update": "输入新令牌以更新",
+    "Must match the internal token configured on the payment node": "必须与支付节点配置的内部令牌一致",
+    "Scan the QR code to pay": "请扫描二维码付款",
+    "Scan with WeChat to pay": "使用微信扫码付款",
+    "Keep this window open. Balance will refresh after payment confirmation.": "请保持此窗口开启，支付确认后余额将自动刷新。"
   }
 }

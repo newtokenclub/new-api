@@ -5711,6 +5711,20 @@
     "Failed to load task logs": "Failed to load task logs",
     "Page {{page}} of {{total}}": "Page {{page}} of {{total}}",
     "Action required applications": "Action required",
-    "All records": "All records"
+    "All records": "All records",
+    "WeChat Native": "WeChat Native",
+    "WeChat Native Gateway": "WeChat Native Gateway",
+    "Enable WeChat Native payment": "Enable WeChat Native payment",
+    "PC QR-code payment handled by the configured payment node": "PC QR-code payment handled by the configured payment node",
+    "Payment node URL": "Payment node URL",
+    "The nodeserve base URL, without a path": "The nodeserve base URL, without a path",
+    "New-api payment callback URL": "New-api payment callback URL",
+    "Must be reachable by the payment node": "Must be reachable by the payment node",
+    "Payment node shared token": "Payment node shared token",
+    "Enter new token to update": "Enter a new token to update",
+    "Must match the internal token configured on the payment node": "Must match the internal token configured on the payment node",
+    "Scan the QR code to pay": "Scan the QR code to pay",
+    "Scan with WeChat to pay": "Scan with WeChat to pay",
+    "Keep this window open. Balance will refresh after payment confirmation.": "Keep this window open. Your balance will refresh after payment is confirmed."
   }
 }

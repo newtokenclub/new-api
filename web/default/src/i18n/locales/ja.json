@@ -5711,6 +5711,20 @@
     "Failed to load task logs": "タスクログの読み込みに失敗しました",
     "Page {{page}} of {{total}}": "{{total}} ページ中 {{page}} ページ",
     "Action required applications": "要対応の申請",
-    "All records": "すべての記録"
+    "All records": "すべての記録",
+    "WeChat Native": "WeChat QRコード決済",
+    "WeChat Native Gateway": "WeChat Native 決済ゲートウェイ",
+    "Enable WeChat Native payment": "WeChat Native 決済を有効にする",
+    "PC QR-code payment handled by the configured payment node": "設定済みの決済ノードでPCのQRコード決済を処理します",
+    "Payment node URL": "決済ノードURL",
+    "The nodeserve base URL, without a path": "パスを含まない nodeserve のベースURL",
+    "New-api payment callback URL": "New API 決済コールバックURL",
+    "Must be reachable by the payment node": "決済ノードからアクセスできる必要があります",
+    "Payment node shared token": "決済ノード共有トークン",
+    "Enter new token to update": "更新する新しいトークンを入力",
+    "Must match the internal token configured on the payment node": "決済ノードに設定された内部トークンと一致する必要があります",
+    "Scan the QR code to pay": "QRコードをスキャンして支払う",
+    "Scan with WeChat to pay": "WeChatでスキャンして支払う",
+    "Keep this window open. Balance will refresh after payment confirmation.": "この画面を開いたままにしてください。支払い確認後、残高が自動更新されます。"
   }
 }

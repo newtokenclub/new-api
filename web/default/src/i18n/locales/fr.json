@@ -5711,6 +5711,20 @@
     "Failed to load task logs": "Échec du chargement des journaux de tâches",
     "Page {{page}} of {{total}}": "Page {{page}} sur {{total}}",
     "Action required applications": "Applications ? traiter",
-    "All records": "Tous les enregistrements"
+    "All records": "Tous les enregistrements",
+    "WeChat Native": "Paiement QR WeChat",
+    "WeChat Native Gateway": "Passerelle WeChat Native",
+    "Enable WeChat Native payment": "Activer le paiement WeChat Native",
+    "PC QR-code payment handled by the configured payment node": "Paiement par QR code sur PC traité par le nœud de paiement configuré",
+    "Payment node URL": "URL du nœud de paiement",
+    "The nodeserve base URL, without a path": "URL de base de nodeserve, sans chemin",
+    "New-api payment callback URL": "URL de rappel de paiement New API",
+    "Must be reachable by the payment node": "Doit être accessible depuis le nœud de paiement",
+    "Payment node shared token": "Jeton partagé du nœud de paiement",
+    "Enter new token to update": "Saisissez un nouveau jeton pour le mettre à jour",
+    "Must match the internal token configured on the payment node": "Doit correspondre au jeton interne configuré sur le nœud de paiement",
+    "Scan the QR code to pay": "Scannez le QR code pour payer",
+    "Scan with WeChat to pay": "Scannez avec WeChat pour payer",
+    "Keep this window open. Balance will refresh after payment confirmation.": "Gardez cette fenêtre ouverte. Le solde sera actualisé après confirmation du paiement."
   }
 }

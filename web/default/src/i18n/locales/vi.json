@@ -5711,6 +5711,20 @@
     "Failed to load task logs": "Không thể tải nhật ký tác vụ",
     "Page {{page}} of {{total}}": "Trang {{page}} / {{total}}",
     "Action required applications": "Đơn cần xử lý",
-    "All records": "Tất cả bản ghi"
+    "All records": "Tất cả bản ghi",
+    "WeChat Native": "Thanh toán QR WeChat",
+    "WeChat Native Gateway": "Cổng thanh toán WeChat Native",
+    "Enable WeChat Native payment": "Bật thanh toán WeChat Native",
+    "PC QR-code payment handled by the configured payment node": "Thanh toán mã QR trên PC được xử lý bởi nút thanh toán đã cấu hình",
+    "Payment node URL": "URL nút thanh toán",
+    "The nodeserve base URL, without a path": "URL cơ sở của nodeserve, không bao gồm đường dẫn",
+    "New-api payment callback URL": "URL callback thanh toán New API",
+    "Must be reachable by the payment node": "Nút thanh toán phải truy cập được địa chỉ này",
+    "Payment node shared token": "Token dùng chung của nút thanh toán",
+    "Enter new token to update": "Nhập token mới để cập nhật",
+    "Must match the internal token configured on the payment node": "Phải khớp với token nội bộ được cấu hình trên nút thanh toán",
+    "Scan the QR code to pay": "Quét mã QR để thanh toán",
+    "Scan with WeChat to pay": "Quét bằng WeChat để thanh toán",
+    "Keep this window open. Balance will refresh after payment confirmation.": "Vui lòng giữ cửa sổ này mở. Số dư sẽ tự động cập nhật sau khi thanh toán được xác nhận."
   }
 }

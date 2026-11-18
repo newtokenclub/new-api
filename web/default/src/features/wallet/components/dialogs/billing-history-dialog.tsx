@@ -73,7 +73,7 @@ export function BillingHistoryDialog({
     keyword,
     loading,
     completing,
-    isAdmin,
+    isRoot,
     handlePageChange,
     handlePageSizeChange,
     handleSearch,
@@ -247,7 +247,7 @@ export function BillingHistoryDialog({
                                 <Copy className='h-3 w-3' />
                               )}
                             </Button>
-                            {isAdmin && record.user_id != null && (
+                            {isRoot && record.user_id != null && (
                               <StatusBadge
                                 label={`${t('User ID')}: ${record.user_id}`}
                                 variant='neutral'
@@ -301,7 +301,7 @@ export function BillingHistoryDialog({
                       </div>
 
                       {/* Admin Actions */}
-                      {isAdmin && record.status === 'pending' && (
+                      {isRoot && record.status === 'pending' && (
                         <div className='mt-4 flex justify-end'>
                           <Button
                             size='sm'
