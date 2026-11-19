@@ -43,7 +43,7 @@ func ApplyReferenceImagePricing(c *gin.Context, info *relaycommon.RelayInfo, bod
 	if info == nil { return }
 	if !info.PriceData.UsePrice { return }
 	config, ok := ratio_setting.GetReferenceImagePricing(info.OriginModelName)
-	if !ok || config.FreeCount <= 0 || config.UnitPrice <= 0 { return }
+	if !ok || config.FreeCount < 0 || config.UnitPrice <= 0 { return }
 	if len(body) == 0 {
 		if storage, err := common.GetBodyStorage(c); err == nil { body, _ = storage.Bytes() }
 	}

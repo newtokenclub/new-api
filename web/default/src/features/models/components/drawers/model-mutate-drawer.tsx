@@ -705,7 +705,8 @@ export function ModelMutateDrawer({
             const rate = referenceImageDisplayRate()
             if (
               pricingMode === 'per-request' &&
-              freeCount > 0 &&
+              Number.isInteger(freeCount) &&
+              freeCount >= 0 &&
               displayPrice > 0 &&
               rate > 0
             ) {
@@ -1572,7 +1573,7 @@ export function ModelMutateDrawer({
                         </FormControl>
                         <FormDescription>
                           {t(
-                            '0 disables reference image billing; all reference images are free.'
+                            'Set to 0 to charge every reference image at the unit price.'
                           )}
                         </FormDescription>
                         <FormMessage />
@@ -1600,7 +1601,7 @@ export function ModelMutateDrawer({
                         </FormControl>
                         <FormDescription>
                           {t(
-                            'Charged for each image after the free count, in the current display unit.'
+                            'Each billable reference image is charged at this price, in the current display unit.'
                           )}
                         </FormDescription>
                         <FormMessage />
