@@ -39,6 +39,28 @@ func TestSeedance25VideoInputRatio(t *testing.T) {
 	}
 }
 
+func TestSeedance25FourKVideoInputRatio(t *testing.T) {
+	const model = "doubao-seedance-2-5-260628"
+	for _, test := range []struct {
+		name     string
+		hasVideo bool
+		want     float64
+	}{
+		{name: "without reference video", hasVideo: false, want: 31.0 / 70.0},
+		{name: "with reference video", hasVideo: true, want: 19.0 / 70.0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, ok := GetVideoInputRatio(model, "4k", test.hasVideo)
+			if !ok {
+				t.Fatal("expected Seedance 2.5 pricing configuration")
+			}
+			if math.Abs(got-test.want) > 1e-9 {
+				t.Fatalf("GetVideoInputRatio() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestSeedance25FlashVideoInputRatio(t *testing.T) {
 	const model = "doubao-seedance-2-5-flash-261115"
 	found := false
