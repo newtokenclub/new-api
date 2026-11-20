@@ -184,6 +184,32 @@ export function Affiliate() {
     )
     if (res.data.success) setSettlementPreview(res.data.data)
   }
+  const saveRule = async () => {
+    const rate = Number(ruleRate)
+    if (
+      !Number.isFinite(rate) ||
+      rate < 0.1 ||
+      rate > 50 ||
+      !selectedRuleSales ||
+      !ruleGroup
+    ) {
+      toast.error(t('Rate must be between 0.1% and 50%'))
+      return
+    }
+    const res = await api.post('/api/user/affiliate/commission-rules', {
+      sales_id: selectedRuleSales.id,
+      group_name: ruleGroup,
+      rate_bps: Math.round(rate * 100),
+      enabled: ruleEnabled,
+    })
+    if (res.data.success) {
+      toast.success(t('Saved'))
+      setRuleGroup('')
+      setEditingRuleId(null)
+      setRuleEnabled(true)
+      await Promise.all([refetchAdminRules(), refetch()])
+    } else toast.error(res.data.message || t('Save failed'))
+  }
   const submitSettlement = async () => {
     if (dialog?.type !== 'settlement' || !settlementPreview?.items?.length) {
       return
@@ -213,32 +239,6 @@ export function Affiliate() {
     } finally {
       setSubmitting(false)
     }
-  }
-  const saveRule = async () => {
-    const rate = Number(ruleRate)
-    if (
-      !Number.isFinite(rate) ||
-      rate < 0.1 ||
-      rate > 50 ||
-      !selectedRuleSales ||
-      !ruleGroup
-    ) {
-      toast.error(t('Rate must be between 0.1% and 50%'))
-      return
-    }
-    const res = await api.post('/api/user/affiliate/commission-rules', {
-      sales_id: selectedRuleSales.id,
-      group_name: ruleGroup,
-      rate_bps: Math.round(rate * 100),
-      enabled: ruleEnabled,
-    })
-    if (res.data.success) {
-      toast.success(t('Saved'))
-      setRuleGroup('')
-      setEditingRuleId(null)
-      setRuleEnabled(true)
-      await Promise.all([refetchAdminRules(), refetch()])
-    } else toast.error(res.data.message || t('Save failed'))
   }
   const saveCommissionPlan = async () => {
     const groups = Array.isArray(groupsResponse?.data)
@@ -924,136 +924,142 @@ export function Affiliate() {
                   ))}
                 </div>
               </section>
-              <section className='space-y-3 rounded-md border p-4'>
-                <div className='font-medium'>
-                  {editingRuleId
-                    ? t('Edit commission rule')
-                    : t('Add commission rule')}
-                </div>
-                <div className='grid gap-3 md:grid-cols-2'>
-                  <div className='space-y-2'>
-                    <label className='text-sm font-medium'>
-                      {t('Sales user')}
-                    </label>
-                    {selectedRuleSales ? (
-                      <div className='flex items-center justify-between rounded-md border px-3 py-2 text-sm'>
-                        <span>
-                          {selectedRuleSales.display_name ||
-                            selectedRuleSales.username}{' '}
-                          · {selectedRuleSales.username} · #
-                          {selectedRuleSales.id}
-                        </span>
-                        <Button
-                          size='sm'
-                          variant='ghost'
-                          onClick={() => {
-                            setSelectedRuleSales(null)
-                            setRuleSalesSearch('')
-                          }}
-                        >
-                          {t('Change')}
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className='flex gap-2'>
-                          <Input
-                            value={ruleSalesSearch}
-                            onChange={(e) => setRuleSalesSearch(e.target.value)}
-                            onKeyDown={(e) =>
-                              e.key === 'Enter' && searchRuleSales()
-                            }
-                            placeholder={t(
-                              'Search any user by ID, username, or display name'
-                            )}
-                          />
-                          <Button variant='outline' onClick={searchRuleSales}>
-                            {t('Search')}
+              {!isRoot && (
+                <section className='space-y-3 rounded-md border p-4'>
+                  <div className='font-medium'>
+                    {editingRuleId
+                      ? t('Edit commission rule')
+                      : t('Add commission rule')}
+                  </div>
+                  <div className='grid gap-3 md:grid-cols-2'>
+                    <div className='space-y-2'>
+                      <label className='text-sm font-medium'>
+                        {t('Sales user')}
+                      </label>
+                      {selectedRuleSales ? (
+                        <div className='flex items-center justify-between rounded-md border px-3 py-2 text-sm'>
+                          <span>
+                            {selectedRuleSales.display_name ||
+                              selectedRuleSales.username}{' '}
+                            · {selectedRuleSales.username} · #
+                            {selectedRuleSales.id}
+                          </span>
+                          <Button
+                            size='sm'
+                            variant='ghost'
+                            onClick={() => {
+                              setSelectedRuleSales(null)
+                              setRuleSalesSearch('')
+                            }}
+                          >
+                            {t('Change')}
                           </Button>
                         </div>
-                        {ruleSalesResults.length > 0 && (
-                          <div className='max-h-48 overflow-auto rounded-md border'>
-                            {ruleSalesResults.map((u) => (
-                              <button
-                                type='button'
-                                key={u.id}
-                                className='hover:bg-muted flex w-full items-center justify-between border-b p-2 text-left text-sm last:border-0'
-                                onClick={() => {
-                                  setSelectedRuleSales(u)
-                                  setRuleSalesSearch(
-                                    `${u.display_name || u.username} (#${u.id})`
-                                  )
-                                  setRuleSalesResults([])
-                                }}
-                              >
-                                <span>
-                                  {u.display_name || u.username} · {u.username}{' '}
-                                  · #{u.id}
-                                </span>
-                                <span className='text-muted-foreground'>
-                                  {t('Role {{role}}', { role: u.role })}
-                                </span>
-                              </button>
-                            ))}
+                      ) : (
+                        <>
+                          <div className='flex gap-2'>
+                            <Input
+                              value={ruleSalesSearch}
+                              onChange={(e) =>
+                                setRuleSalesSearch(e.target.value)
+                              }
+                              onKeyDown={(e) =>
+                                e.key === 'Enter' && searchRuleSales()
+                              }
+                              placeholder={t(
+                                'Search any user by ID, username, or display name'
+                              )}
+                            />
+                            <Button variant='outline' onClick={searchRuleSales}>
+                              {t('Search')}
+                            </Button>
                           </div>
-                        )}
-                      </>
+                          {ruleSalesResults.length > 0 && (
+                            <div className='max-h-48 overflow-auto rounded-md border'>
+                              {ruleSalesResults.map((u) => (
+                                <button
+                                  type='button'
+                                  key={u.id}
+                                  className='hover:bg-muted flex w-full items-center justify-between border-b p-2 text-left text-sm last:border-0'
+                                  onClick={() => {
+                                    setSelectedRuleSales(u)
+                                    setRuleSalesSearch(
+                                      `${u.display_name || u.username} (#${u.id})`
+                                    )
+                                    setRuleSalesResults([])
+                                  }}
+                                >
+                                  <span>
+                                    {u.display_name || u.username} ·{' '}
+                                    {u.username} · #{u.id}
+                                  </span>
+                                  <span className='text-muted-foreground'>
+                                    {t('Role {{role}}', { role: u.role })}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <div className='space-y-2'>
+                      <label className='text-sm font-medium'>
+                        {t('Group')}
+                      </label>
+                      <select
+                        className='border-input bg-background h-9 w-full rounded-md border px-3 text-sm'
+                        value={ruleGroup}
+                        onChange={(e) => setRuleGroup(e.target.value)}
+                      >
+                        <option value=''>{t('Select a group')}</option>
+                        {(Array.isArray(groupsResponse?.data)
+                          ? groupsResponse.data
+                          : []
+                        ).map((g: string) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className='space-y-2'>
+                      <label className='text-sm font-medium'>
+                        {t('Commission rate (%)')}
+                      </label>
+                      <Input
+                        type='number'
+                        min='0.1'
+                        max='50'
+                        step='0.1'
+                        value={ruleRate}
+                        onChange={(e) => setRuleRate(e.target.value)}
+                      />
+                      <p className='text-muted-foreground text-xs'>
+                        {t('Rate must be between 0.1% and 50%')}
+                      </p>
+                    </div>
+                    <label className='flex items-center gap-2 self-center text-sm'>
+                      <input
+                        type='checkbox'
+                        checked={ruleEnabled}
+                        onChange={(e) => setRuleEnabled(e.target.checked)}
+                      />
+                      {t('Enabled')}
+                    </label>
+                  </div>
+                  <div className='flex gap-2'>
+                    <Button onClick={saveRule}>
+                      {editingRuleId ? t('Save changes') : t('Save rule')}
+                    </Button>
+                    {editingRuleId && (
+                      <Button variant='outline' onClick={resetRuleForm}>
+                        {t('Cancel')}
+                      </Button>
                     )}
                   </div>
-                  <div className='space-y-2'>
-                    <label className='text-sm font-medium'>{t('Group')}</label>
-                    <select
-                      className='border-input bg-background h-9 w-full rounded-md border px-3 text-sm'
-                      value={ruleGroup}
-                      onChange={(e) => setRuleGroup(e.target.value)}
-                    >
-                      <option value=''>{t('Select a group')}</option>
-                      {(Array.isArray(groupsResponse?.data)
-                        ? groupsResponse.data
-                        : []
-                      ).map((g: string) => (
-                        <option key={g} value={g}>
-                          {g}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className='space-y-2'>
-                    <label className='text-sm font-medium'>
-                      {t('Commission rate (%)')}
-                    </label>
-                    <Input
-                      type='number'
-                      min='0.1'
-                      max='50'
-                      step='0.1'
-                      value={ruleRate}
-                      onChange={(e) => setRuleRate(e.target.value)}
-                    />
-                    <p className='text-muted-foreground text-xs'>
-                      {t('Rate must be between 0.1% and 50%')}
-                    </p>
-                  </div>
-                  <label className='flex items-center gap-2 self-center text-sm'>
-                    <input
-                      type='checkbox'
-                      checked={ruleEnabled}
-                      onChange={(e) => setRuleEnabled(e.target.checked)}
-                    />
-                    {t('Enabled')}
-                  </label>
-                </div>
-                <div className='flex gap-2'>
-                  <Button onClick={saveRule}>
-                    {editingRuleId ? t('Save changes') : t('Save rule')}
-                  </Button>
-                  {editingRuleId && (
-                    <Button variant='outline' onClick={resetRuleForm}>
-                      {t('Cancel')}
-                    </Button>
-                  )}
-                </div>
-              </section>
+                </section>
+              )}
               <section className='space-y-3 rounded-md border p-4'>
                 <div className='flex flex-wrap items-center justify-between gap-2'>
                   <h3 className='font-medium'>
