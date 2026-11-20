@@ -297,6 +297,7 @@ func migrateDB() error {
 		&AffiliateCommissionPlanRate{},
 		&AffiliateSalesPlanAssignment{},
 		&AffiliateUserNote{},
+		&AffiliateSalesLink{},
 		&AffiliateSettlementApplication{},
 		&AffiliateSettlementItem{},
 		&QuotaData{},

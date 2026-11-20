@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -85,6 +85,10 @@ import {
   getPermissionCatalog,
   searchUsers,
   setUserInviter,
+  getUserAffiliateSales,
+  addUserAffiliateSales,
+  removeUserAffiliateSales,
+  type AffiliateSalesAssignment,
 } from '../api'
 import {
   BINDING_FIELDS,
@@ -137,6 +141,17 @@ export function UsersMutateDrawer({
   >()
   const [inviterSearching, setInviterSearching] = useState(false)
   const [inviterSaving, setInviterSaving] = useState(false)
+  const [affiliateSales, setAffiliateSales] = useState<
+    AffiliateSalesAssignment[]
+  >([])
+  const [additionalSalesKeyword, setAdditionalSalesKeyword] = useState('')
+  const [additionalSalesOptions, setAdditionalSalesOptions] = useState<
+    Array<{ id: number; username: string; display_name: string }>
+  >([])
+  const [selectedAdditionalSalesId, setSelectedAdditionalSalesId] = useState<
+    number | undefined
+  >()
+  const [additionalSalesSaving, setAdditionalSalesSaving] = useState(false)
 
   // Fetch groups
   const { data: groupsData } = useQuery({
@@ -185,6 +200,20 @@ export function UsersMutateDrawer({
       form.reset(USER_FORM_DEFAULT_VALUES)
     }
   }, [open, isUpdate, currentRow, form])
+
+  useEffect(() => {
+    if (
+      !open ||
+      !isUpdate ||
+      !currentRow ||
+      currentUser?.role !== ROLE.SUPER_ADMIN
+    ) {
+      return
+    }
+    void getUserAffiliateSales(currentRow.id).then((result) => {
+      if (result.success) setAffiliateSales(result.data?.sales || [])
+    })
+  }, [open, isUpdate, currentRow, currentUser?.role])
 
   const { meta: currencyMeta } = getCurrencyDisplay()
   const currencyLabel = getCurrencyLabel()
@@ -278,11 +307,67 @@ export function UsersMutateDrawer({
         setSelectedInviterId(undefined)
         setInviterKeyword('')
         setInviterOptions([])
+        const salesResult = await getUserAffiliateSales(currentRow.id)
+        if (salesResult.success) {
+          setAffiliateSales(salesResult.data?.sales || [])
+        }
         await refreshUserData()
       } else toast.error(result.message || t('Update failed'))
     } finally {
       setInviterSaving(false)
     }
+  }
+
+  const searchAdditionalSales = async () => {
+    const keyword = additionalSalesKeyword.trim()
+    if (!keyword) return
+    const result = await searchUsers({ keyword, p: 1, page_size: 50 })
+    if (result.success) {
+      const linkedIds = new Set(affiliateSales.map((sales) => sales.id))
+      setAdditionalSalesOptions(
+        (result.data?.items || [])
+          .filter(
+            (user) => user.id !== currentRow?.id && !linkedIds.has(user.id)
+          )
+          .map((user) => ({
+            id: user.id,
+            username: user.username,
+            display_name: user.display_name,
+          }))
+      )
+    } else toast.error(result.message || t('Failed to search users'))
+  }
+
+  const addAdditionalSales = async () => {
+    if (!currentRow || !selectedAdditionalSalesId) return
+    setAdditionalSalesSaving(true)
+    try {
+      const result = await addUserAffiliateSales(
+        currentRow.id,
+        selectedAdditionalSalesId
+      )
+      if (result.success) {
+        toast.success(t('Sales inviter added'))
+        setSelectedAdditionalSalesId(undefined)
+        setAdditionalSalesKeyword('')
+        setAdditionalSalesOptions([])
+        const updated = await getUserAffiliateSales(currentRow.id)
+        if (updated.success) setAffiliateSales(updated.data?.sales || [])
+      } else toast.error(result.message || t('Update failed'))
+    } finally {
+      setAdditionalSalesSaving(false)
+    }
+  }
+
+  const removeAdditionalSales = async (salesId: number) => {
+    if (!currentRow) return
+    const result = await removeUserAffiliateSales(currentRow.id, salesId)
+    if (result.success) {
+      toast.success(t('Sales inviter removed'))
+      setAffiliateSales((current) =>
+        current.filter((sales) => sales.id !== salesId)
+      )
+    } else toast.error(result.message || t('Update failed'))
   }
 
   return (
@@ -430,7 +515,7 @@ export function UsersMutateDrawer({
                 />
               </SideDrawerSection>
 
-              {isUpdate && (
+              {isUpdate && currentUser?.role === ROLE.SUPER_ADMIN && (
                 <SideDrawerSection>
                   <h3 className='text-sm font-medium'>
                     {t('Invitation relationship')}
@@ -484,6 +569,107 @@ export function UsersMutateDrawer({
                   >
                     {t('Save inviter')}
                   </Button>
+                  <div className='space-y-2 border-t pt-3'>
+                    <h4 className='text-sm font-medium'>
+                      {t('Additional sales inviter')}
+                    </h4>
+                    <div className='space-y-1'>
+                      {affiliateSales
+                        .filter((sales) => !sales.primary)
+                        .map((sales) => (
+                          <div
+                            key={sales.id}
+                            className='flex items-center justify-between rounded border px-3 py-2 text-sm'
+                          >
+                            <span>
+                              {sales.display_name || sales.username} (
+                              {sales.username}, #{sales.id})
+                            </span>
+                            <Button
+                              type='button'
+                              size='icon'
+                              variant='ghost'
+                              title={t('Remove sales inviter')}
+                              aria-label={t('Remove sales inviter')}
+                              onClick={() => removeAdditionalSales(sales.id)}
+                            >
+                              <Trash2 className='size-4' />
+                            </Button>
+                          </div>
+                        ))}
+                      {affiliateSales.filter((sales) => !sales.primary)
+                        .length === 0 && (
+                        <p className='text-muted-foreground text-xs'>
+                          {t('No additional sales inviter')}
+                        </p>
+                      )}
+                    </div>
+                    <div className='flex gap-2'>
+                      <Input
+                        value={additionalSalesKeyword}
+                        onChange={(event) =>
+                          setAdditionalSalesKeyword(event.target.value)
+                        }
+                        placeholder={t(
+                          'Search sales by ID, username, or display name'
+                        )}
+                      />
+                      <Button
+                        type='button'
+                        variant='outline'
+                        onClick={searchAdditionalSales}
+                      >
+                        {t('Search')}
+                      </Button>
+                    </div>
+                    {additionalSalesOptions.length > 0 && (
+                      <Select
+                        value={
+                          selectedAdditionalSalesId
+                            ? String(selectedAdditionalSalesId)
+                            : undefined
+                        }
+                        onValueChange={(value) =>
+                          setSelectedAdditionalSalesId(Number(value))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={t('Select additional sales inviter')}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {additionalSalesOptions.map((sales) => (
+                              <SelectItem
+                                key={sales.id}
+                                value={String(sales.id)}
+                              >
+                                {sales.display_name || sales.username} (
+                                {sales.username}, #{sales.id})
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Button
+                      type='button'
+                      onClick={addAdditionalSales}
+                      disabled={
+                        !selectedAdditionalSalesId ||
+                        additionalSalesSaving ||
+                        affiliateSales.length >= 2
+                      }
+                    >
+                      {t('Add sales inviter')}
+                    </Button>
+                    <p className='text-muted-foreground text-xs'>
+                      {t(
+                        'A user can be assigned to at most two sales, including the primary inviter.'
+                      )}
+                    </p>
+                  </div>
                 </SideDrawerSection>
               )}
 

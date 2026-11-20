@@ -125,11 +125,59 @@ func AssignAffiliateCommissionPlan(c *gin.Context) {
 }
 
 type settlementItemRequest struct { GroupName string `json:"group_name"`; Quota int64 `json:"quota"`; RateBps int `json:"rate_bps"`; Commission int64 `json:"commission"` }
-func PreviewAffiliateSettlement(c *gin.Context) { target,ok:=parseAffiliateTarget(c); if !ok{return}; end,_:=strconv.ParseInt(c.Query("end_at"),10,64); if end==0 { end=time.Now().AddDate(0,0,-1).Truncate(24*time.Hour).Unix()+24*60*60 }; start,_:=strconv.ParseInt(c.Query("start_at"),10,64); if start==0 { start=0 }; rules,err:=model.GetAffiliateCommissionRules(model.DB,c.GetInt("id")); if err!=nil {common.ApiError(c,err);return}; allowed:=map[string]model.AffiliateCommissionRule{}; for _,r:=range rules {allowed[r.GroupName]=r}; rows,err:=model.GetAvailableAffiliateSettlementQuota(model.DB,target,start,end); if err!=nil {common.ApiError(c,err);return}; items:=[]settlementItemRequest{}; var total,commission int64; for _,r:=range rows { rule,yes:=allowed[r.GroupName]; if !yes || r.Quota<=0 {continue}; amount:=r.Quota*int64(rule.RateBps)/10000; items=append(items,settlementItemRequest{GroupName:r.GroupName,Quota:r.Quota,RateBps:rule.RateBps,Commission:amount}); total+=r.Quota; commission+=amount }; c.JSON(http.StatusOK,gin.H{"success":true,"data":gin.H{"start_at":start,"end_at":end,"total_quota":total,"total_commission":commission,"currency":operation_setting.GetQuotaDisplayType(),"items":items}}) }
+func PreviewAffiliateSettlement(c *gin.Context) {
+	target, ok := parseAffiliateTarget(c); if !ok { return }
+	end, _ := strconv.ParseInt(c.Query("end_at"), 10, 64)
+	if end == 0 { end = time.Now().AddDate(0, 0, -1).Truncate(24*time.Hour).Unix() + 24*60*60 }
+	start, _ := strconv.ParseInt(c.Query("start_at"), 10, 64)
+	rules, err := model.GetAffiliateCommissionRules(model.DB, c.GetInt("id")); if err != nil { common.ApiError(c, err); return }
+	allowed := map[string]model.AffiliateCommissionRule{}
+	for _, rule := range rules { allowed[rule.GroupName] = rule }
+	rows, err := model.GetAvailableAffiliateSettlementQuota(model.DB, c.GetInt("id"), target, start, end); if err != nil { common.ApiError(c, err); return }
+	items := []settlementItemRequest{}
+	var total, commission int64
+	for _, row := range rows {
+		rule, ok := allowed[row.GroupName]; if !ok || row.Quota <= 0 { continue }
+		amount := row.Quota * int64(rule.RateBps) / 10000
+		items = append(items, settlementItemRequest{GroupName: row.GroupName, Quota: row.Quota, RateBps: rule.RateBps, Commission: amount})
+		total += row.Quota; commission += amount
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"start_at": start, "end_at": end, "total_quota": total, "total_commission": commission, "currency": operation_setting.GetQuotaDisplayType(), "items": items}})
+}
 
-func CreateAffiliateSettlement(c *gin.Context) { var req struct{ TargetUserID int `json:"target_user_id"`; StartAt int64 `json:"start_at"`; EndAt int64 `json:"end_at"`; Remark string `json:"remark"`; PaymentType string `json:"payment_type"`; PaymentNote string `json:"payment_note"`; AttachmentKeys []string `json:"attachment_keys"`; TotalQuota int64 `json:"total_quota"`; TotalCommission int64 `json:"total_commission"`; Items []settlementItemRequest `json:"items"` }; if err:=common.DecodeJson(c.Request.Body,&req); err!=nil {common.ApiError(c,err);return}; if len(req.Items)==0 || req.EndAt<=req.StartAt {common.ApiErrorMsg(c,"no eligible consumption");return}; if req.EndAt > time.Now().Truncate(24*time.Hour).Unix() { common.ApiErrorMsg(c,"settlement end date must be before today"); return }; target,ok:=parseAffiliateTargetByID(c,req.TargetUserID); if !ok{return}; _=target; rules,err:=model.GetAffiliateCommissionRules(model.DB,c.GetInt("id")); if err!=nil {common.ApiError(c,err);return}; ruleMap:=map[string]model.AffiliateCommissionRule{}; for _,r:=range rules {ruleMap[r.GroupName]=r}; dbRows,err:=model.GetAvailableAffiliateSettlementQuota(model.DB,req.TargetUserID,req.StartAt,req.EndAt); if err!=nil {common.ApiError(c,err);return}; actual:=map[string]int64{}; for _,r:=range dbRows {actual[r.GroupName]=r.Quota}; var computedTotal,computedCommission int64; for _,i:=range req.Items {rule,yes:=ruleMap[i.GroupName]; if !yes || actual[i.GroupName]<=0 || i.RateBps!=rule.RateBps || i.Quota!=actual[i.GroupName] {common.ApiErrorMsg(c,"settlement details have changed, please refresh");return}; expected:=i.Quota*int64(i.RateBps)/10000; if i.Commission!=expected {common.ApiErrorMsg(c,"invalid commission amount");return}; computedTotal+=i.Quota; computedCommission+=expected }; if computedTotal!=req.TotalQuota || computedCommission!=req.TotalCommission {common.ApiErrorMsg(c,"invalid settlement total");return}; var keys string; b,_:=json.Marshal(req.AttachmentKeys); keys=string(b); app:=&model.AffiliateSettlementApplication{SalesId:c.GetInt("id"),TargetUserId:req.TargetUserID,StartAt:req.StartAt,EndAt:req.EndAt,TotalQuota:req.TotalQuota,TotalCommission:req.TotalCommission,Currency:operation_setting.GetQuotaDisplayType(),Remark:req.Remark,PaymentType:req.PaymentType,PaymentNote:req.PaymentNote,AttachmentKeys:keys}; for _,i:=range req.Items { app.Items=append(app.Items,model.AffiliateSettlementItem{GroupName:i.GroupName,Quota:i.Quota,RateBps:i.RateBps,Commission:i.Commission}) }; if err:=model.CreateAffiliateSettlement(app);err!=nil{common.ApiError(c,err);return}; c.JSON(http.StatusOK,gin.H{"success":true,"data":app}) }
+func CreateAffiliateSettlement(c *gin.Context) {
+	var req struct {
+		TargetUserID int `json:"target_user_id"`; StartAt int64 `json:"start_at"`; EndAt int64 `json:"end_at"`; Remark string `json:"remark"`
+		PaymentType string `json:"payment_type"`; PaymentNote string `json:"payment_note"`; AttachmentKeys []string `json:"attachment_keys"`
+		TotalQuota int64 `json:"total_quota"`; TotalCommission int64 `json:"total_commission"`; Items []settlementItemRequest `json:"items"`
+	}
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil { common.ApiError(c, err); return }
+	if len(req.Items) == 0 || req.EndAt <= req.StartAt { common.ApiErrorMsg(c, "no eligible consumption"); return }
+	if req.EndAt > time.Now().Truncate(24*time.Hour).Unix() { common.ApiErrorMsg(c, "settlement end date must be before today"); return }
+	if _, ok := parseAffiliateTargetByID(c, req.TargetUserID); !ok { return }
+	rules, err := model.GetAffiliateCommissionRules(model.DB, c.GetInt("id")); if err != nil { common.ApiError(c, err); return }
+	ruleMap := map[string]model.AffiliateCommissionRule{}
+	for _, rule := range rules { ruleMap[rule.GroupName] = rule }
+	dbRows, err := model.GetAvailableAffiliateSettlementQuota(model.DB, c.GetInt("id"), req.TargetUserID, req.StartAt, req.EndAt); if err != nil { common.ApiError(c, err); return }
+	actual := map[string]int64{}
+	for _, row := range dbRows { actual[row.GroupName] = row.Quota }
+	var computedTotal, computedCommission int64
+	for _, item := range req.Items {
+		rule, ok := ruleMap[item.GroupName]
+		if !ok || actual[item.GroupName] <= 0 || item.RateBps != rule.RateBps || item.Quota != actual[item.GroupName] { common.ApiErrorMsg(c, "settlement details have changed, please refresh"); return }
+		expected := item.Quota * int64(item.RateBps) / 10000
+		if item.Commission != expected { common.ApiErrorMsg(c, "invalid commission amount"); return }
+		computedTotal += item.Quota; computedCommission += expected
+	}
+	if computedTotal != req.TotalQuota || computedCommission != req.TotalCommission { common.ApiErrorMsg(c, "invalid settlement total"); return }
+	keys, _ := json.Marshal(req.AttachmentKeys)
+	app := &model.AffiliateSettlementApplication{SalesId: c.GetInt("id"), TargetUserId: req.TargetUserID, StartAt: req.StartAt, EndAt: req.EndAt, TotalQuota: req.TotalQuota, TotalCommission: req.TotalCommission, Currency: operation_setting.GetQuotaDisplayType(), Remark: req.Remark, PaymentType: req.PaymentType, PaymentNote: req.PaymentNote, AttachmentKeys: string(keys)}
+	for _, item := range req.Items { app.Items = append(app.Items, model.AffiliateSettlementItem{GroupName: item.GroupName, Quota: item.Quota, RateBps: item.RateBps, Commission: item.Commission}) }
+	if err := model.CreateAffiliateSettlement(app); err != nil { common.ApiError(c, err); return }
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": app})
+}
 
-func parseAffiliateTargetByID(c *gin.Context,id int)(int,bool){ var n int64; model.DB.Model(&model.User{}).Where("id = ? AND inviter_id = ? AND deleted_at IS NULL",id,c.GetInt("id")).Count(&n); if n==0 {common.ApiErrorMsg(c,"target is not your direct subordinate");return 0,false}; return id,true }
+func parseAffiliateTargetByID(c *gin.Context,id int)(int,bool){ linked,err:=model.IsAffiliateSalesForUser(model.DB,id,c.GetInt("id")); if err!=nil {common.ApiError(c,err);return 0,false}; if !linked {common.ApiErrorMsg(c,"target is not your direct subordinate");return 0,false}; return id,true }
 
 type affiliateSettlementListItem struct {
 	model.AffiliateSettlementApplication

@@ -63,3 +63,54 @@ func TestAffiliateCommissionPlanOverridesLegacyRulesWithoutChangingSettlementSna
 	require.NoError(t, DB.First(&savedSnapshot, snapshot.Id).Error)
 	assert.Equal(t, snapshot, savedSnapshot)
 }
+
+func TestAffiliateSalesLinkGrantsSubordinateAccessWithoutChangingPrimaryInviter(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(&AffiliateSalesLink{}, &User{}))
+	target := User{Username: "affiliate-link-target-test", Password: "test-password", InviterId: 791031}
+	secondary := User{Username: "affiliate-link-secondary-test", Password: "test-password"}
+	require.NoError(t, DB.Create(&target).Error)
+	require.NoError(t, DB.Create(&secondary).Error)
+	t.Cleanup(func() {
+		DB.Where("user_id = ?", target.Id).Delete(&AffiliateSalesLink{})
+		DB.Delete(&User{}, target.Id)
+		DB.Delete(&User{}, secondary.Id)
+	})
+
+	primaryAccess, err := IsAffiliateSalesForUser(DB, target.Id, target.InviterId)
+	require.NoError(t, err)
+	assert.True(t, primaryAccess)
+
+	require.NoError(t, DB.Create(&AffiliateSalesLink{UserId: target.Id, SalesId: secondary.Id}).Error)
+	secondaryAccess, err := IsAffiliateSalesForUser(DB, target.Id, secondary.Id)
+	require.NoError(t, err)
+	assert.True(t, secondaryAccess)
+
+	var unchanged User
+	require.NoError(t, DB.First(&unchanged, target.Id).Error)
+	assert.Equal(t, target.InviterId, unchanged.InviterId)
+}
+
+func TestAffiliateSettlementReservationIsPerSalesUser(t *testing.T) {
+	require.NoError(t, DB.AutoMigrate(&AffiliateSettlementApplication{}, &QuotaData{}))
+	const targetID = 791041
+	application := AffiliateSettlementApplication{
+		SalesId: 791042, TargetUserId: targetID, StartAt: 100, EndAt: 200,
+		Status: AffiliateSettlementPending,
+	}
+	require.NoError(t, DB.Create(&application).Error)
+	quota := QuotaData{UserID: targetID, CreatedAt: 150, UseGroup: "default", Quota: 1000}
+	require.NoError(t, DB.Create(&quota).Error)
+	t.Cleanup(func() {
+		DB.Delete(&quota)
+		DB.Delete(&application)
+	})
+
+	reservedRows, err := GetAvailableAffiliateSettlementQuota(DB, application.SalesId, targetID, 100, 200)
+	require.NoError(t, err)
+	assert.Empty(t, reservedRows)
+
+	otherSalesRows, err := GetAvailableAffiliateSettlementQuota(DB, application.SalesId+1, targetID, 100, 200)
+	require.NoError(t, err)
+	require.Len(t, otherSalesRows, 1)
+	assert.Equal(t, int64(1000), otherSalesRows[0].Quota)
+}

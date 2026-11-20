@@ -50,7 +50,11 @@ func parseAffiliateTarget(c *gin.Context) (int, bool) {
 		return 0, false
 	}
 	var count int64
-	model.DB.Model(&model.User{}).Where("id = ? AND inviter_id = ? AND deleted_at IS NULL", id, c.GetInt("id")).Count(&count)
+	linkedUsers := model.DB.Table("affiliate_sales_links").Select("user_id").Where("sales_id = ?", c.GetInt("id"))
+	if err := model.DB.Model(&model.User{}).Where("id = ? AND deleted_at IS NULL", id).Where("(inviter_id = ? OR id IN (?))", c.GetInt("id"), linkedUsers).Count(&count).Error; err != nil {
+		common.ApiError(c, err)
+		return 0, false
+	}
 	if count == 0 {
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "target is not your direct subordinate"})
 		return 0, false
@@ -61,11 +65,12 @@ func parseAffiliateTarget(c *gin.Context) (int, bool) {
 func GetAffiliateUsers(c *gin.Context) {
 	page := common.GetPageQuery(c)
 	salesID := c.GetInt("id")
-	query := model.DB.Model(&model.User{}).Where("inviter_id = ? AND deleted_at IS NULL", salesID)
+	linkedUsers := model.DB.Table("affiliate_sales_links").Select("user_id").Where("sales_id = ?", salesID)
+	query := model.DB.Model(&model.User{}).Where("deleted_at IS NULL").Where("(inviter_id = ? OR id IN (?))", salesID, linkedUsers)
 	if keyword := strings.TrimSpace(c.Query("keyword")); keyword != "" {
 		like := "%" + keyword + "%"
 		noteUsers := model.DB.Model(&model.AffiliateUserNote{}).Select("target_user_id").Where("sales_id = ? AND remark LIKE ?", salesID, like)
-		query = query.Where("username LIKE ? OR display_name LIKE ? OR id IN (?)", like, like, noteUsers)
+		query = query.Where("(username LIKE ? OR display_name LIKE ? OR id IN (?))", like, like, noteUsers)
 	}
 	if group := strings.TrimSpace(c.Query("group")); group != "" {
 		query = query.Where("(`group` = ? OR `group` LIKE ? OR `group` LIKE ? OR `group` LIKE ?)", group, group+",%", "%,"+group, "%,"+group+",%")
@@ -124,8 +129,10 @@ func GetAffiliateStats(c *gin.Context) {
 		ApprovedCommission int64 `json:"approved_commission"`
 	}
 	if len(salesIDs) > 0 {
-		if err := model.DB.Model(&model.User{}).Where("inviter_id IN ? AND deleted_at IS NULL", salesIDs).Count(&stats.DirectSubordinates).Error; err != nil { common.ApiError(c, err); return }
-		if err := model.DB.Model(&model.User{}).Select("COALESCE(SUM(used_quota), 0)").Where("inviter_id IN ? AND deleted_at IS NULL", salesIDs).Scan(&stats.TotalConsumption).Error; err != nil { common.ApiError(c, err); return }
+		linkedUsers := model.DB.Table("affiliate_sales_links").Select("user_id").Where("sales_id IN ?", salesIDs)
+		attributedUsers := model.DB.Model(&model.User{}).Where("deleted_at IS NULL").Where("(inviter_id IN ? OR id IN (?))", salesIDs, linkedUsers)
+		if err := attributedUsers.Count(&stats.DirectSubordinates).Error; err != nil { common.ApiError(c, err); return }
+		if err := model.DB.Model(&model.User{}).Select("COALESCE(SUM(used_quota), 0)").Where("deleted_at IS NULL").Where("(inviter_id IN ? OR id IN (?))", salesIDs, linkedUsers).Scan(&stats.TotalConsumption).Error; err != nil { common.ApiError(c, err); return }
 		settlementQuery := func() *gorm.DB {
 			return model.DB.Model(&model.AffiliateSettlementApplication{}).Where("sales_id IN ?", salesIDs)
 		}

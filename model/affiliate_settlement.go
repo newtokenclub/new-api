@@ -119,9 +119,9 @@ type AffiliateSettlementQuotaRow struct {
 
 // GetAvailableAffiliateSettlementQuota returns consumption not already
 // reserved by a pending, approved, or paid settlement for this target.
-func GetAvailableAffiliateSettlementQuota(db *gorm.DB, targetUserID int, startAt, endAt int64) ([]AffiliateSettlementQuotaRow, error) {
+func GetAvailableAffiliateSettlementQuota(db *gorm.DB, salesID, targetUserID int, startAt, endAt int64) ([]AffiliateSettlementQuotaRow, error) {
 	var reserved []AffiliateSettlementApplication
-	if err := db.Select("start_at", "end_at").Where("target_user_id = ? AND status IN ? AND start_at < ? AND end_at > ?", targetUserID, []string{AffiliateSettlementPending, AffiliateSettlementApproved, AffiliateSettlementPaid}, endAt, startAt).Find(&reserved).Error; err != nil {
+	if err := db.Select("start_at", "end_at").Where("sales_id = ? AND target_user_id = ? AND status IN ? AND start_at < ? AND end_at > ?", salesID, targetUserID, []string{AffiliateSettlementPending, AffiliateSettlementApproved, AffiliateSettlementPaid}, endAt, startAt).Find(&reserved).Error; err != nil {
 		return nil, err
 	}
 	query := db.Table("quota_data").Select("use_group, SUM(quota) AS quota").Where("user_id = ? AND created_at >= ? AND created_at < ?", targetUserID, startAt, endAt)
@@ -143,7 +143,10 @@ func CreateAffiliateSettlement(app *AffiliateSettlementApplication) error {
 		// consumption.
 		var target User
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&target, "id = ? AND deleted_at IS NULL", app.TargetUserId).Error; err != nil { return err }
-		rows, err := GetAvailableAffiliateSettlementQuota(tx, app.TargetUserId, app.StartAt, app.EndAt)
+		isSales, err := IsAffiliateSalesForUser(tx, app.TargetUserId, app.SalesId)
+		if err != nil { return err }
+		if !isSales { return errors.New("target is not assigned to this sales user") }
+		rows, err := GetAvailableAffiliateSettlementQuota(tx, app.SalesId, app.TargetUserId, app.StartAt, app.EndAt)
 		if err != nil { return err }
 		rules, err := GetAffiliateCommissionRules(tx, app.SalesId)
 		if err != nil { return err }

@@ -169,6 +169,40 @@ export async function setUserInviter(
   return res.data
 }
 
+export type AffiliateSalesAssignment = {
+  id: number
+  username: string
+  display_name: string
+  primary: boolean
+}
+
+export async function getUserAffiliateSales(
+  userId: number
+): Promise<
+  ApiResponse<{ sales: AffiliateSalesAssignment[]; max_sales: number }>
+> {
+  const res = await api.get(`/api/user/${userId}/affiliate-sales`)
+  return res.data
+}
+
+export async function addUserAffiliateSales(
+  userId: number,
+  salesId: number
+): Promise<ApiResponse> {
+  const res = await api.post(`/api/user/${userId}/affiliate-sales`, {
+    sales_id: salesId,
+  })
+  return res.data
+}
+
+export async function removeUserAffiliateSales(
+  userId: number,
+  salesId: number
+): Promise<ApiResponse> {
+  const res = await api.delete(`/api/user/${userId}/affiliate-sales/${salesId}`)
+  return res.data
+}
+
 /**
  * Delete a single user (hard delete)
  */

@@ -25,6 +25,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type LoginRequest struct {
@@ -381,6 +382,10 @@ func GetUser(c *gin.Context) {
 // admin-only endpoint and rejects self/descendant assignments to keep the
 // inviter graph acyclic.
 func SetUserInviter(c *gin.Context) {
+	if c.GetInt("role") != common.RoleRootUser {
+		common.ApiErrorMsg(c, "root permission required")
+		return
+	}
 	targetID, err := strconv.Atoi(c.Param("id"))
 	if err != nil || targetID <= 0 {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
@@ -405,6 +410,22 @@ func SetUserInviter(c *gin.Context) {
 	if !canManageTargetRole(c.GetInt("role"), target.Role) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
+	}
+	if target.InviterId != req.InviterID {
+		var linkedCount int64
+		if err := model.DB.Model(&model.AffiliateSalesLink{}).Where("user_id = ?", targetID).Count(&linkedCount).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		var duplicateCount int64
+		if err := model.DB.Model(&model.AffiliateSalesLink{}).Where("user_id = ? AND sales_id = ?", targetID, req.InviterID).Count(&duplicateCount).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if 1+linkedCount-duplicateCount > 2 {
+			common.ApiErrorMsg(c, "user can have at most two sales")
+			return
+		}
 	}
 	inviter, err := model.GetUserById(req.InviterID, false)
 	if err != nil {
@@ -432,12 +453,96 @@ func SetUserInviter(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	if err := model.DB.Where("user_id = ? AND sales_id = ?", targetID, req.InviterID).Delete(&model.AffiliateSalesLink{}).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	_ = model.InvalidateUserCache(targetID)
 	recordManageAuditFor(c, targetID, "user.inviter_update", map[string]interface{}{
 		"inviter_id": req.InviterID,
 		"inviter_username": inviter.Username,
 	})
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "success"})
+}
+
+func ListUserAffiliateSales(c *gin.Context) {
+	targetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || targetID <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	var target model.User
+	if err := model.DB.Select("id", "inviter_id").First(&target, "id = ? AND deleted_at IS NULL", targetID).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	type salesRow struct {
+		Id          int    `json:"id"`
+		Username    string `json:"username"`
+		DisplayName string `json:"display_name"`
+		Primary     bool   `json:"primary"`
+	}
+	sales := make([]salesRow, 0, 2)
+	if target.InviterId > 0 {
+		var primary salesRow
+		if err := model.DB.Table("users").Select("id, username, display_name").Where("id = ?", target.InviterId).Scan(&primary).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if primary.Id > 0 { primary.Primary = true; sales = append(sales, primary) }
+	}
+	var linked []salesRow
+	if err := model.DB.Table("affiliate_sales_links AS l").Select("u.id, u.username, u.display_name").Joins("JOIN users u ON u.id = l.sales_id").Where("l.user_id = ?", targetID).Order("u.id").Find(&linked).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	for _, row := range linked { row.Primary = false; sales = append(sales, row) }
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"sales": sales, "max_sales": 2}})
+}
+
+func AddUserAffiliateSales(c *gin.Context) {
+	if c.GetInt("role") != common.RoleRootUser { common.ApiErrorMsg(c, "root permission required"); return }
+	targetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil || targetID <= 0 { common.ApiErrorI18n(c, i18n.MsgInvalidParams); return }
+	var req struct { SalesID int `json:"sales_id"` }
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil || req.SalesID <= 0 { common.ApiErrorI18n(c, i18n.MsgInvalidParams); return }
+	if targetID == req.SalesID { common.ApiErrorMsg(c, "user cannot be their own sales"); return }
+	var target, sales model.User
+	if err := model.DB.Select("id", "inviter_id").First(&target, "id = ? AND deleted_at IS NULL", targetID).Error; err != nil { common.ApiError(c, err); return }
+	if err := model.DB.Select("id").First(&sales, "id = ? AND deleted_at IS NULL", req.SalesID).Error; err != nil { common.ApiError(c, err); return }
+	if target.InviterId == req.SalesID { common.ApiErrorMsg(c, "sales user is already the primary inviter"); return }
+	var result model.AffiliateSalesLink
+	err = model.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&target, "id = ? AND deleted_at IS NULL", targetID).Error; err != nil { return err }
+		var links []model.AffiliateSalesLink
+		if err := tx.Where("user_id = ?", targetID).Find(&links).Error; err != nil { return err }
+		for _, link := range links { if link.SalesId == req.SalesID { return errors.New("sales user is already linked") } }
+		count := len(links)
+		if target.InviterId > 0 { count++ }
+		if count >= 2 { return errors.New("user can have at most two sales") }
+		result = model.AffiliateSalesLink{UserId: targetID, SalesId: req.SalesID}
+		return tx.Create(&result).Error
+	})
+	if err != nil { common.ApiError(c, err); return }
+	_ = model.InvalidateUserCache(targetID)
+	recordManageAuditFor(c, targetID, "user.affiliate_sales_add", map[string]interface{}{"sales_id": req.SalesID})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+}
+
+func DeleteUserAffiliateSales(c *gin.Context) {
+	if c.GetInt("role") != common.RoleRootUser { common.ApiErrorMsg(c, "root permission required"); return }
+	targetID, err := strconv.Atoi(c.Param("id"))
+	salesID, salesErr := strconv.Atoi(c.Param("sales_id"))
+	if err != nil || targetID <= 0 || salesErr != nil || salesID <= 0 { common.ApiErrorI18n(c, i18n.MsgInvalidParams); return }
+	var target model.User
+	if err := model.DB.Select("id", "inviter_id").First(&target, "id = ? AND deleted_at IS NULL", targetID).Error; err != nil { common.ApiError(c, err); return }
+	if target.InviterId == salesID { common.ApiErrorMsg(c, "change the primary inviter through the invitation relationship setting"); return }
+	result := model.DB.Where("user_id = ? AND sales_id = ?", targetID, salesID).Delete(&model.AffiliateSalesLink{})
+	if result.Error != nil { common.ApiError(c, result.Error); return }
+	if result.RowsAffected == 0 { common.ApiErrorMsg(c, "sales relationship not found"); return }
+	_ = model.InvalidateUserCache(targetID)
+	recordManageAuditFor(c, targetID, "user.affiliate_sales_remove", map[string]interface{}{"sales_id": salesID})
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
 func GenerateAccessToken(c *gin.Context) {
