@@ -5752,6 +5752,10 @@
     "Must match the internal token configured on the payment node": "決済ノードに設定された内部トークンと一致する必要があります",
     "Scan the QR code to pay": "QRコードをスキャンして支払う",
     "Scan with WeChat to pay": "WeChatでスキャンして支払う",
-    "Keep this window open. Balance will refresh after payment confirmation.": "この画面を開いたままにしてください。支払い確認後、残高が自動更新されます。"
+    "Keep this window open. Balance will refresh after payment confirmation.": "この画面を開いたままにしてください。支払い確認後、残高が自動更新されます。",
+    "Reset Used Quota": "使用済みクォータをリセット",
+    "Failed to reset used quota": "使用済みクォータのリセットに失敗しました",
+    "Used quota reset": "使用済みクォータをリセットしました",
+    "Reset used quota for channel \"{{name}}\"? This only resets the channel card counter. Task records and dashboard history will not be changed.": "チャネル「{{name}}」の使用済みクォータをリセットしますか？チャネルカードの数値のみをリセットし、タスク記録とダッシュボードの履歴は変更しません。"
   }
 }

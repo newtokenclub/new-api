@@ -5752,6 +5752,10 @@
     "Must match the internal token configured on the payment node": "Phải khớp với token nội bộ được cấu hình trên nút thanh toán",
     "Scan the QR code to pay": "Quét mã QR để thanh toán",
     "Scan with WeChat to pay": "Quét bằng WeChat để thanh toán",
-    "Keep this window open. Balance will refresh after payment confirmation.": "Vui lòng giữ cửa sổ này mở. Số dư sẽ tự động cập nhật sau khi thanh toán được xác nhận."
+    "Keep this window open. Balance will refresh after payment confirmation.": "Vui lòng giữ cửa sổ này mở. Số dư sẽ tự động cập nhật sau khi thanh toán được xác nhận.",
+    "Reset Used Quota": "Đặt lại hạn mức đã sử dụng",
+    "Failed to reset used quota": "Không thể đặt lại hạn mức đã sử dụng",
+    "Used quota reset": "Đã đặt lại hạn mức đã sử dụng",
+    "Reset used quota for channel \"{{name}}\"? This only resets the channel card counter. Task records and dashboard history will not be changed.": "Đặt lại hạn mức đã sử dụng của kênh “{{name}}”? Chỉ bộ đếm trên thẻ kênh được đặt lại; dữ liệu tác vụ và lịch sử bảng điều khiển không bị thay đổi."
   }
 }

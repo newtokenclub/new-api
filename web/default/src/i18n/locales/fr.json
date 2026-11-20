@@ -5752,6 +5752,10 @@
     "Must match the internal token configured on the payment node": "Doit correspondre au jeton interne configuré sur le nœud de paiement",
     "Scan the QR code to pay": "Scannez le QR code pour payer",
     "Scan with WeChat to pay": "Scannez avec WeChat pour payer",
-    "Keep this window open. Balance will refresh after payment confirmation.": "Gardez cette fenêtre ouverte. Le solde sera actualisé après confirmation du paiement."
+    "Keep this window open. Balance will refresh after payment confirmation.": "Gardez cette fenêtre ouverte. Le solde sera actualisé après confirmation du paiement.",
+    "Reset Used Quota": "Réinitialiser le quota utilisé",
+    "Failed to reset used quota": "Échec de la réinitialisation du quota utilisé",
+    "Used quota reset": "Quota utilisé réinitialisé",
+    "Reset used quota for channel \"{{name}}\"? This only resets the channel card counter. Task records and dashboard history will not be changed.": "Réinitialiser le quota utilisé du canal « {{name}} » ? Seul le compteur de la carte sera remis à zéro. Les tâches et l’historique du tableau de bord ne seront pas modifiés."
   }
 }

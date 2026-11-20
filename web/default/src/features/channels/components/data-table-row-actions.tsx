@@ -34,6 +34,7 @@ import {
   RefreshCw,
   Loader2,
   Activity,
+  RotateCcw,
 } from 'lucide-react'
 import { useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -60,6 +61,7 @@ import {
 } from '@/lib/admin-permissions'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { resetChannelUsedQuota } from '../api'
 import { MODEL_FETCHABLE_TYPES } from '../constants'
 import {
   channelsQueryKeys,
@@ -86,6 +88,8 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const queryClient = useQueryClient()
   const currentUser = useAuthStore((s) => s.auth.user)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [resetUsedQuotaConfirmOpen, setResetUsedQuotaConfirmOpen] = useState(false)
+  const [isResettingUsedQuota, setIsResettingUsedQuota] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
 
@@ -96,6 +100,31 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     ADMIN_PERMISSION_RESOURCES.CHANNEL,
     ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
   )
+  const canOperate = hasPermission(
+    currentUser,
+    ADMIN_PERMISSION_RESOURCES.CHANNEL,
+    ADMIN_PERMISSION_ACTIONS.OPERATE
+  )
+
+  const handleResetUsedQuota = async () => {
+    if (!canOperate || isResettingUsedQuota) return
+    setIsResettingUsedQuota(true)
+    try {
+      const response = await resetChannelUsedQuota(channel.id)
+      if (!response.success) {
+        throw new Error(response.message || t('Failed to reset used quota'))
+      }
+      setResetUsedQuotaConfirmOpen(false)
+      queryClient.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      toast.success(t('Used quota reset'))
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to reset used quota')
+      )
+    } finally {
+      setIsResettingUsedQuota(false)
+    }
+  }
 
   const handleEdit = () => {
     setCurrentRow(channel)
@@ -370,6 +399,20 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
 
           <DropdownMenuSeparator />
 
+          <DropdownMenuItem
+            disabled={!canOperate}
+            onSelect={(e) => {
+              e.preventDefault()
+              if (!canOperate) return
+              setResetUsedQuotaConfirmOpen(true)
+            }}
+          >
+            {t('Reset Used Quota')}
+            <DropdownMenuShortcut>
+              <RotateCcw size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+
           {/* Copy Channel */}
           <DropdownMenuItem
             disabled={!canEditSensitive}
@@ -415,6 +458,20 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ConfirmDialog
+        open={resetUsedQuotaConfirmOpen}
+        onOpenChange={setResetUsedQuotaConfirmOpen}
+        title={t('Reset Used Quota')}
+        desc={t(
+          'Reset used quota for channel "{{name}}"? This only resets the channel card counter. Task records and dashboard history will not be changed.',
+          { name: channel.name }
+        )}
+        confirmText={t('Reset')}
+        destructive
+        isLoading={isResettingUsedQuota}
+        handleConfirm={handleResetUsedQuota}
+      />
 
       <ConfirmDialog
         open={deleteConfirmOpen}

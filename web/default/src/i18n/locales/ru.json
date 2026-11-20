@@ -5752,6 +5752,10 @@
     "Must match the internal token configured on the payment node": "Должен совпадать с внутренним токеном платёжного узла",
     "Scan the QR code to pay": "Отсканируйте QR-код для оплаты",
     "Scan with WeChat to pay": "Отсканируйте код в WeChat для оплаты",
-    "Keep this window open. Balance will refresh after payment confirmation.": "Не закрывайте это окно. Баланс обновится после подтверждения платежа."
+    "Keep this window open. Balance will refresh after payment confirmation.": "Не закрывайте это окно. Баланс обновится после подтверждения платежа.",
+    "Reset Used Quota": "Сбросить использованную квоту",
+    "Failed to reset used quota": "Не удалось сбросить использованную квоту",
+    "Used quota reset": "Использованная квота сброшена",
+    "Reset used quota for channel \"{{name}}\"? This only resets the channel card counter. Task records and dashboard history will not be changed.": "Сбросить использованную квоту канала «{{name}}»? Обнулится только счетчик карточки канала; записи задач и история панели не изменятся."
   }
 }

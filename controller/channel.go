@@ -1134,6 +1134,27 @@ func UpdateChannelStatus(c *gin.Context) {
 	})
 }
 
+func ResetChannelUsedQuota(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if _, err := model.GetChannelById(id, false); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.ResetChannelUsedQuota(id); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	model.InitChannelCache()
+	recordManageAudit(c, "channel.used_quota_reset", map[string]interface{}{
+		"id": id,
+	})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+}
+
 func BatchUpdateChannelStatus(c *gin.Context) {
 	req := ChannelStatusBatchRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil || len(req.Ids) == 0 || !isManageableChannelStatus(req.Status) {

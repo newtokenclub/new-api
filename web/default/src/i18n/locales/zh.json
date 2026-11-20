@@ -5752,6 +5752,10 @@
     "Must match the internal token configured on the payment node": "必须与支付节点配置的内部令牌一致",
     "Scan the QR code to pay": "请扫描二维码付款",
     "Scan with WeChat to pay": "使用微信扫码付款",
-    "Keep this window open. Balance will refresh after payment confirmation.": "请保持此窗口开启，支付确认后余额将自动刷新。"
+    "Keep this window open. Balance will refresh after payment confirmation.": "请保持此窗口开启，支付确认后余额将自动刷新。",
+    "Reset Used Quota": "重置已使用额度",
+    "Failed to reset used quota": "重置已使用额度失败",
+    "Used quota reset": "已使用额度已重置",
+    "Reset used quota for channel \"{{name}}\"? This only resets the channel card counter. Task records and dashboard history will not be changed.": "确定重置渠道“{{name}}”的已使用额度吗？此操作只清零渠道卡片计数，不会修改任务记录和数据看板历史。"
   }
 }
