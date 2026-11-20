@@ -52,8 +52,10 @@ var videoPriceTable = map[string]map[videoPriceKey]float64{
 		{is4k: true, hasVideo: true}:     19.0,
 	},
 	"doubao-seedance-2-5-flash-261115": {
-		{hasVideo: false}: 46.0,
-		{hasVideo: true}:  28.0,
+		{hasVideo: false}:                46.0,
+		{hasVideo: true}:                 28.0,
+		{is1080p: true, hasVideo: false}: 51.0,
+		{is1080p: true, hasVideo: true}:  31.0,
 	},
 }
 

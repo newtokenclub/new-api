@@ -97,10 +97,23 @@ func TestSeedance25FlashVideoInputRatio(t *testing.T) {
 		})
 	}
 
-	// Other resolutions retain the existing base-price fallback; the upstream
-	// service is responsible for rejecting unsupported values.
-	if got, ok := GetVideoInputRatio(model, "1080p", true); !ok || got != 1.0 {
-		t.Fatalf("1080p fallback = (%v, %v), want (1, true)", got, ok)
+	for _, test := range []struct {
+		name     string
+		hasVideo bool
+		want     float64
+	}{
+		{name: "without video", hasVideo: false, want: 51.0 / 46.0},
+		{name: "with video", hasVideo: true, want: 31.0 / 46.0},
+	} {
+		t.Run("1080p/"+test.name, func(t *testing.T) {
+			got, ok := GetVideoInputRatio(model, "1080p", test.hasVideo)
+			if !ok {
+				t.Fatal("expected Seedance 2.5 Flash pricing configuration")
+			}
+			if math.Abs(got-test.want) > 1e-9 {
+				t.Fatalf("GetVideoInputRatio() = %v, want %v", got, test.want)
+			}
+		})
 	}
 }
 
