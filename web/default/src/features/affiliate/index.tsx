@@ -8,7 +8,7 @@ License, or (at your option) any later version.
 */
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { BarChart3, ListChecks, Pencil } from 'lucide-react'
+import { BarChart3, ListChecks, Pencil, Trash2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -104,6 +104,12 @@ export function Affiliate() {
   const [ruleEnabled, setRuleEnabled] = useState(true)
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null)
   const [ruleFilter, setRuleFilter] = useState('')
+  const [planName, setPlanName] = useState('')
+  const [planRates, setPlanRates] = useState<Record<string, string>>({})
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null)
+  const [planEnabled, setPlanEnabled] = useState(true)
+  const [assignmentPlanId, setAssignmentPlanId] = useState('')
+  const [assignmentSales, setAssignmentSales] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('subordinates')
   const [statsSalesID, setStatsSalesID] = useState('all')
   const [remarkUser, setRemarkUser] = useState<AffiliateUser | null>(null)
@@ -131,6 +137,13 @@ export function Affiliate() {
       (await api.get('/api/user/affiliate/commission-rules')).data,
     enabled: isRoot,
   })
+  const { data: commissionPlansData, refetch: refetchCommissionPlans } =
+    useQuery({
+      queryKey: ['affiliate-commission-plans'],
+      queryFn: async () =>
+        (await api.get('/api/user/affiliate/commission-plans')).data,
+      enabled: isRoot,
+    })
   const { data: groupsResponse } = useQuery({
     queryKey: ['affiliate-configurable-groups'],
     queryFn: async () => (await api.get('/api/group/')).data,
@@ -227,6 +240,101 @@ export function Affiliate() {
       await Promise.all([refetchAdminRules(), refetch()])
     } else toast.error(res.data.message || t('Save failed'))
   }
+  const saveCommissionPlan = async () => {
+    const groups = Array.isArray(groupsResponse?.data)
+      ? groupsResponse.data
+      : []
+    const rates = groups
+      .filter((group: string) => Number(planRates[group]) > 0)
+      .map((group: string) => ({
+        group_name: group,
+        rate_bps: Math.round(Number(planRates[group]) * 100),
+        enabled: true,
+      }))
+    if (
+      !planName.trim() ||
+      rates.some((rate: any) => rate.rate_bps < 10 || rate.rate_bps > 5000)
+    ) {
+      toast.error(t('Enter a plan name and valid rates between 0.1% and 50%'))
+      return
+    }
+    const res = await api.post('/api/user/affiliate/commission-plans', {
+      id: editingPlanId || 0,
+      name: planName.trim(),
+      enabled: planEnabled,
+      rates,
+    })
+    if (res.data.success) {
+      toast.success(t('Saved'))
+      setPlanName('')
+      setPlanRates({})
+      setEditingPlanId(null)
+      setPlanEnabled(true)
+      await refetchCommissionPlans()
+    } else toast.error(res.data.message || t('Save failed'))
+  }
+  const assignCommissionPlan = async () => {
+    if (!assignmentSales || !assignmentPlanId) return
+    const res = await api.put(
+      '/api/user/affiliate/commission-plans/assignment',
+      {
+        sales_id: assignmentSales.id,
+        plan_id: Number(assignmentPlanId),
+      }
+    )
+    if (res.data.success) {
+      toast.success(t('Plan assigned'))
+      setAssignmentSales(null)
+      setAssignmentPlanId('')
+      setRuleSalesSearch('')
+      await refetchCommissionPlans()
+    } else toast.error(res.data.message || t('Save failed'))
+  }
+  const removeCommissionPlan = async (plan: any) => {
+    if (
+      !window.confirm(t('Delete this plan? Sales must be unassigned first.'))
+    ) {
+      return
+    }
+    const res = await api.delete(
+      `/api/user/affiliate/commission-plans/${plan.id}`
+    )
+    if (res.data.success) {
+      toast.success(t('Deleted'))
+      await refetchCommissionPlans()
+    } else toast.error(res.data.message || t('Delete failed'))
+  }
+  const removeCommissionAssignment = async (salesId: number) => {
+    const res = await api.put(
+      '/api/user/affiliate/commission-plans/assignment',
+      {
+        sales_id: salesId,
+        plan_id: 0,
+      }
+    )
+    if (res.data.success) {
+      toast.success(t('Assignment removed'))
+      await refetchCommissionPlans()
+    } else toast.error(res.data.message || t('Save failed'))
+  }
+  const removeLegacyRule = async (ruleId: number) => {
+    if (
+      !window.confirm(
+        t(
+          'Delete this legacy rule? Existing settlement records will not change.'
+        )
+      )
+    ) {
+      return
+    }
+    const res = await api.delete(
+      `/api/user/affiliate/commission-rules/${ruleId}`
+    )
+    if (res.data.success) {
+      toast.success(t('Deleted'))
+      await refetchAdminRules()
+    } else toast.error(res.data.message || t('Delete failed'))
+  }
   const searchRuleSales = async () => {
     if (!ruleSalesSearch.trim()) {
       setRuleSalesResults([])
@@ -260,7 +368,6 @@ export function Affiliate() {
     setRuleEnabled(true)
     setRuleSalesResults([])
   }
-
   const loadConsumption = useCallback(
     async (startTimestamp: number, endTimestamp: number) => {
       if (!dialog?.user) {
@@ -584,6 +691,240 @@ export function Affiliate() {
           {isRoot && activeTab === 'rules' && (
             <div className='space-y-4'>
               <section className='space-y-3 rounded-md border p-4'>
+                <h3 className='font-medium'>{t('Commission plans')}</h3>
+                <div className='grid gap-3 md:grid-cols-[minmax(180px,1fr)_auto]'>
+                  <Input
+                    value={planName}
+                    onChange={(event) => setPlanName(event.target.value)}
+                    placeholder={t('Plan name')}
+                  />
+                  <label className='flex items-center gap-2 text-sm'>
+                    <input
+                      type='checkbox'
+                      checked={planEnabled}
+                      onChange={(event) => setPlanEnabled(event.target.checked)}
+                    />
+                    {t('Enabled')}
+                  </label>
+                </div>
+                <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+                  {(Array.isArray(groupsResponse?.data)
+                    ? groupsResponse.data
+                    : []
+                  ).map((group: string) => (
+                    <label
+                      key={group}
+                      className='grid grid-cols-[1fr_120px] items-center gap-2 text-sm'
+                    >
+                      <span>{group}</span>
+                      <Input
+                        type='number'
+                        min='0'
+                        max='50'
+                        step='0.1'
+                        value={planRates[group] || ''}
+                        placeholder='0'
+                        aria-label={t('Commission rate for {{group}}', {
+                          group,
+                        })}
+                        onChange={(event) =>
+                          setPlanRates((current) => ({
+                            ...current,
+                            [group]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className='flex gap-2'>
+                  <Button onClick={saveCommissionPlan}>
+                    {editingPlanId ? t('Save changes') : t('Save plan')}
+                  </Button>
+                  {editingPlanId && (
+                    <Button
+                      variant='outline'
+                      onClick={() => {
+                        setPlanName('')
+                        setPlanRates({})
+                        setEditingPlanId(null)
+                        setPlanEnabled(true)
+                      }}
+                    >
+                      {t('Cancel')}
+                    </Button>
+                  )}
+                </div>
+                <div className='grid gap-2 border-t pt-3 md:grid-cols-[minmax(220px,1fr)_minmax(180px,240px)_auto]'>
+                  <div className='space-y-2'>
+                    {assignmentSales ? (
+                      <div className='flex h-9 items-center justify-between rounded-md border px-3 text-sm'>
+                        <span>
+                          {assignmentSales.display_name ||
+                            assignmentSales.username}{' '}
+                          ({assignmentSales.username}, #{assignmentSales.id})
+                        </span>
+                        <Button
+                          size='sm'
+                          variant='ghost'
+                          onClick={() => setAssignmentSales(null)}
+                        >
+                          {t('Change')}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className='flex gap-2'>
+                        <Input
+                          value={ruleSalesSearch}
+                          onChange={(event) =>
+                            setRuleSalesSearch(event.target.value)
+                          }
+                          onKeyDown={(event) =>
+                            event.key === 'Enter' && searchRuleSales()
+                          }
+                          placeholder={t('Search sales to assign')}
+                        />
+                        <Button variant='outline' onClick={searchRuleSales}>
+                          {t('Search')}
+                        </Button>
+                      </div>
+                    )}
+                    {!assignmentSales && ruleSalesResults.length > 0 && (
+                      <div className='max-h-40 overflow-auto rounded-md border'>
+                        {ruleSalesResults.map((user: any) => (
+                          <button
+                            key={user.id}
+                            type='button'
+                            className='hover:bg-muted block w-full border-b p-2 text-left text-sm last:border-0'
+                            onClick={() => {
+                              setAssignmentSales(user)
+                              setRuleSalesResults([])
+                            }}
+                          >
+                            {user.display_name || user.username} (
+                            {user.username}, #{user.id})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Select
+                    value={assignmentPlanId}
+                    onValueChange={(value) => setAssignmentPlanId(value || '')}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('Select a plan')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(commissionPlansData?.data || [])
+                        .filter((entry: any) => entry.plan.enabled)
+                        .map((entry: any) => (
+                          <SelectItem
+                            key={entry.plan.id}
+                            value={String(entry.plan.id)}
+                          >
+                            {entry.plan.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={assignCommissionPlan}
+                    disabled={!assignmentSales || !assignmentPlanId}
+                  >
+                    {t('Assign plan')}
+                  </Button>
+                </div>
+                <div className='space-y-3'>
+                  {(commissionPlansData?.data || []).map((entry: any) => (
+                    <div
+                      key={entry.plan.id}
+                      className='space-y-2 rounded-md border p-3'
+                    >
+                      <div className='flex flex-wrap items-center justify-between gap-2'>
+                        <div>
+                          <span className='font-medium'>{entry.plan.name}</span>
+                          <span className='text-muted-foreground ml-2 text-xs'>
+                            {entry.plan.enabled ? t('Enabled') : t('Disabled')}
+                          </span>
+                        </div>
+                        <div className='flex gap-2'>
+                          <Button
+                            size='sm'
+                            variant='outline'
+                            onClick={() => {
+                              setEditingPlanId(entry.plan.id)
+                              setPlanName(entry.plan.name)
+                              setPlanEnabled(entry.plan.enabled)
+                              setPlanRates(
+                                Object.fromEntries(
+                                  entry.plan.rates.map((rate: any) => [
+                                    rate.group_name,
+                                    String(rate.rate_bps / 100),
+                                  ])
+                                )
+                              )
+                            }}
+                          >
+                            {t('Edit')}
+                          </Button>
+                          <Button
+                            size='icon'
+                            variant='ghost'
+                            title={t('Delete plan')}
+                            aria-label={t('Delete plan')}
+                            onClick={() => removeCommissionPlan(entry.plan)}
+                          >
+                            <Trash2 className='size-4' />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className='flex flex-wrap gap-2 text-sm'>
+                        {entry.plan.rates
+                          .filter((rate: any) => rate.enabled)
+                          .map((rate: any) => (
+                            <span
+                              key={rate.group_name}
+                              className='bg-muted rounded px-2 py-1'
+                            >
+                              {rate.group_name}:{' '}
+                              {(rate.rate_bps / 100).toFixed(2)}%
+                            </span>
+                          ))}
+                      </div>
+                      <div className='flex flex-wrap gap-2 border-t pt-2'>
+                        {(entry.assignments || []).map((sale: any) => (
+                          <span
+                            key={sale.sales_id}
+                            className='inline-flex items-center gap-1 rounded border px-2 py-1 text-xs'
+                          >
+                            {sale.display_name || sale.username} (
+                            {sale.username}, #{sale.sales_id})
+                            <Button
+                              size='icon'
+                              variant='ghost'
+                              className='size-6'
+                              title={t('Remove assignment')}
+                              aria-label={t('Remove assignment')}
+                              onClick={() =>
+                                removeCommissionAssignment(sale.sales_id)
+                              }
+                            >
+                              <Trash2 className='size-3' />
+                            </Button>
+                          </span>
+                        ))}
+                        {(entry.assignments || []).length === 0 && (
+                          <span className='text-muted-foreground text-xs'>
+                            {t('No sales assigned')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className='space-y-3 rounded-md border p-4'>
                 <div className='font-medium'>
                   {editingRuleId
                     ? t('Edit commission rule')
@@ -765,6 +1106,15 @@ export function Affiliate() {
                                 onClick={() => beginEditRule(r)}
                               >
                                 {t('Edit')}
+                              </Button>
+                              <Button
+                                size='icon'
+                                variant='ghost'
+                                title={t('Delete legacy rule')}
+                                aria-label={t('Delete legacy rule')}
+                                onClick={() => removeLegacyRule(r.id)}
+                              >
+                                <Trash2 className='size-4' />
                               </Button>
                             </td>
                           </tr>

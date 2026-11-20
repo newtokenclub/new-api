@@ -25,6 +25,31 @@ type AffiliateCommissionRule struct {
 	UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
+type AffiliateCommissionPlan struct {
+	Id        int                           `json:"id"`
+	Name      string                        `json:"name" gorm:"size:128;uniqueIndex"`
+	Enabled   bool                          `json:"enabled" gorm:"index"`
+	CreatedAt int64                         `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt int64                         `json:"updated_at" gorm:"autoUpdateTime"`
+	Rates     []AffiliateCommissionPlanRate `json:"rates" gorm:"foreignKey:PlanId"`
+}
+
+type AffiliateCommissionPlanRate struct {
+	Id       int    `json:"id"`
+	PlanId   int    `json:"plan_id" gorm:"uniqueIndex:ux_plan_group"`
+	GroupName string `json:"group_name" gorm:"size:128;uniqueIndex:ux_plan_group"`
+	RateBps  int    `json:"rate_bps"`
+	Enabled  bool   `json:"enabled"`
+}
+
+type AffiliateSalesPlanAssignment struct {
+	Id        int   `json:"id"`
+	SalesId   int   `json:"sales_id" gorm:"uniqueIndex"`
+	PlanId    int   `json:"plan_id" gorm:"index"`
+	CreatedAt int64 `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt int64 `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
 type AffiliateSettlementApplication struct {
 	Id int `json:"id"`
 	SalesId int `json:"sales_id" gorm:"index;not null"`
@@ -61,6 +86,30 @@ type AffiliateSettlementItem struct {
 func (AffiliateSettlementApplication) TableName() string { return "affiliate_settlement_applications" }
 func (AffiliateSettlementItem) TableName() string { return "affiliate_settlement_items" }
 
+func GetAffiliateCommissionRules(db *gorm.DB, salesID int) ([]AffiliateCommissionRule, error) {
+	var assignment AffiliateSalesPlanAssignment
+	if err := db.Where("sales_id = ?", salesID).First(&assignment).Error; err == nil {
+		if assignment.PlanId == 0 {
+			return []AffiliateCommissionRule{}, nil
+		}
+		var plan AffiliateCommissionPlan
+		if err := db.Preload("Rates").Where("id = ? AND enabled = ?", assignment.PlanId, true).First(&plan).Error; err != nil {
+			if err == gorm.ErrRecordNotFound { return []AffiliateCommissionRule{}, nil }
+			return nil, err
+		}
+		rules := make([]AffiliateCommissionRule, 0, len(plan.Rates))
+		for _, rate := range plan.Rates {
+			if rate.Enabled { rules = append(rules, AffiliateCommissionRule{SalesId: salesID, GroupName: rate.GroupName, RateBps: rate.RateBps, Enabled: true}) }
+		}
+		return rules, nil
+	} else if err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	var rules []AffiliateCommissionRule
+	err := db.Where("sales_id = ? AND enabled = ?", salesID, true).Find(&rules).Error
+	return rules, err
+}
+
 func ValidateAffiliateRate(rateBps int) error { if rateBps < 10 || rateBps > 5000 { return errors.New("rate must be between 0.1% and 50%") }; return nil }
 
 type AffiliateSettlementQuotaRow struct {
@@ -96,8 +145,8 @@ func CreateAffiliateSettlement(app *AffiliateSettlementApplication) error {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&target, "id = ? AND deleted_at IS NULL", app.TargetUserId).Error; err != nil { return err }
 		rows, err := GetAvailableAffiliateSettlementQuota(tx, app.TargetUserId, app.StartAt, app.EndAt)
 		if err != nil { return err }
-		var rules []AffiliateCommissionRule
-		if err := tx.Where("sales_id = ? AND enabled = ?", app.SalesId, true).Find(&rules).Error; err != nil { return err }
+		rules, err := GetAffiliateCommissionRules(tx, app.SalesId)
+		if err != nil { return err }
 		ruleMap := make(map[string]AffiliateCommissionRule, len(rules))
 		for _, rule := range rules { ruleMap[rule.GroupName] = rule }
 		available := make(map[string]int64, len(rows))
