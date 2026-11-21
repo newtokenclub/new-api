@@ -41,6 +41,19 @@ export async function updateSystemOption(request: UpdateOptionRequest) {
   return res.data
 }
 
+export async function renameGroup(oldName: string, newName: string) {
+  const res = await api.post<UpdateOptionResponse>('/api/group/rename', {
+    old_name: oldName,
+    new_name: newName,
+  })
+  return res.data
+}
+
+export async function deleteGroup(name: string) {
+  const res = await api.post<UpdateOptionResponse>('/api/group/delete', { name })
+  return res.data
+}
+
 export async function confirmPaymentCompliance() {
   const res = await api.post<ConfirmPaymentComplianceResponse>(
     '/api/option/payment_compliance',

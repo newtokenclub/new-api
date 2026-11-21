@@ -26,8 +26,9 @@ import * as z from "zod";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsRoot } from "@/hooks/use-root";
 
-import { resetModelRatios } from "../api";
+import { deleteGroup, renameGroup, resetModelRatios } from "../api";
 import { SettingsPageTitleStatusPortal } from "../components/settings-page-context";
 import { SettingsSection } from "../components/settings-section";
 import { useUpdateOption } from "../hooks/use-update-option";
@@ -80,6 +81,78 @@ function formatJsonValidationError(
   }
 
   return parts.join(" ");
+}
+
+function getJsonKeys(value: string): string[] {
+  const parsed: unknown = JSON.parse(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Invalid group settings JSON");
+  }
+  return Object.keys(parsed);
+}
+
+function transformGroupSetting(
+  value: string,
+  key: string,
+  oldName: string,
+  newName: string | null,
+): string {
+  const parsed: unknown = JSON.parse(value);
+  const replace = (name: string) => (name === oldName ? newName : name);
+
+  if (key === "AutoGroups") {
+    if (!Array.isArray(parsed)) {
+      throw new Error("Invalid automatic group settings");
+    }
+    return JSON.stringify(
+      [...new Set(parsed.map((name) => replace(String(name))).filter(Boolean))],
+      null,
+      2,
+    );
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Invalid group settings JSON");
+  }
+
+  const object = parsed as Record<string, unknown>;
+  if (key === "GroupGroupRatio" || key === "GroupSpecialUsableGroup") {
+    const result: Record<string, Record<string, unknown>> = {};
+    for (const [outerName, rawInner] of Object.entries(object)) {
+      if (!rawInner || typeof rawInner !== "object" || Array.isArray(rawInner)) {
+        result[outerName] = {};
+        continue;
+      }
+      const transformedOuter = replace(outerName);
+      if (!transformedOuter) continue;
+      const inner: Record<string, unknown> = {};
+      for (const [innerName, rawValue] of Object.entries(
+        rawInner as Record<string, unknown>,
+      )) {
+        const prefix =
+          key === "GroupSpecialUsableGroup" &&
+          (innerName.startsWith("+:") || innerName.startsWith("-:"))
+          ? innerName.slice(0, 2)
+          : "";
+        const innerGroupName = innerName.slice(prefix.length);
+        const transformedInnerGroup = replace(innerGroupName);
+        const transformedInner = transformedInnerGroup
+          ? `${prefix}${transformedInnerGroup}`
+          : null;
+        if (!transformedInner) continue;
+        inner[transformedInner] = rawValue;
+      }
+      result[transformedOuter] = inner;
+    }
+    return JSON.stringify(result, null, 2);
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [name, rawValue] of Object.entries(object)) {
+    const transformedName = replace(name);
+    if (transformedName) result[transformedName] = rawValue;
+  }
+  return JSON.stringify(result, null, 2);
 }
 
 function createJsonStringField(
@@ -149,6 +222,7 @@ export function RatioSettingsCard({
   visibleTabs = ["models", "groups", "tool-prices", "upstream-sync"],
 }: RatioSettingsCardProps) {
   const { t } = useTranslation();
+  const isRoot = useIsRoot();
   const updateOption = useUpdateOption();
   const queryClient = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -356,7 +430,7 @@ export function RatioSettingsCard({
 
   const saveGroupRatios = useCallback(
     async (values: GroupFormValues) => {
-      const normalized = {
+      let normalized = {
         GroupRatio: normalizeJsonString(values.GroupRatio),
         TopupGroupRatio: normalizeJsonString(values.TopupGroupRatio),
         UserUsableGroups: normalizeJsonString(values.UserUsableGroups),
@@ -370,6 +444,131 @@ export function RatioSettingsCard({
           values.GroupSpecialUsableGroup,
         ),
       };
+
+      const currentNames = new Set(
+        getJsonKeys(groupNormalizedDefaults.current.GroupRatio),
+      );
+      const nextNames = new Set(getJsonKeys(normalized.GroupRatio));
+      const removedNames = [...currentNames].filter(
+        (name) => !nextNames.has(name),
+      );
+      const addedNames = [...nextNames].filter(
+        (name) => !currentNames.has(name),
+      );
+      if (
+        removedNames.length > 1 ||
+        (removedNames.length === 1 && addedNames.length > 1)
+      ) {
+        toast.error(t("Rename or delete one group at a time"));
+        return;
+      }
+
+      if (removedNames.length > 0 && !isRoot) {
+        toast.error(t("Only root administrators can rename or delete groups"));
+        return;
+      }
+
+      if (removedNames.length === 1 && addedNames.length === 1) {
+        const response = await renameGroup(removedNames[0], addedNames[0]);
+        if (!response.success) {
+          toast.error(response.message || t("Group rename failed"));
+          return;
+        }
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["system-options"] }),
+          queryClient.invalidateQueries({ queryKey: ["groups"] }),
+          queryClient.invalidateQueries({ queryKey: ["user-groups"] }),
+        ]);
+        normalized = {
+          ...normalized,
+          TopupGroupRatio: transformGroupSetting(
+            normalized.TopupGroupRatio,
+            "TopupGroupRatio",
+            removedNames[0],
+            addedNames[0],
+          ),
+          UserUsableGroups: transformGroupSetting(
+            normalized.UserUsableGroups,
+            "UserUsableGroups",
+            removedNames[0],
+            addedNames[0],
+          ),
+          AuthorizationRequiredGroups: transformGroupSetting(
+            normalized.AuthorizationRequiredGroups,
+            "AuthorizationRequiredGroups",
+            removedNames[0],
+            addedNames[0],
+          ),
+          GroupGroupRatio: transformGroupSetting(
+            normalized.GroupGroupRatio,
+            "GroupGroupRatio",
+            removedNames[0],
+            addedNames[0],
+          ),
+          AutoGroups: transformGroupSetting(
+            normalized.AutoGroups,
+            "AutoGroups",
+            removedNames[0],
+            addedNames[0],
+          ),
+          GroupSpecialUsableGroup: transformGroupSetting(
+            normalized.GroupSpecialUsableGroup,
+            "GroupSpecialUsableGroup",
+            removedNames[0],
+            addedNames[0],
+          ),
+        };
+      } else if (removedNames.length === 1) {
+        const response = await deleteGroup(removedNames[0]);
+        if (!response.success) {
+          toast.error(response.message || t("Group deletion failed"));
+          return;
+        }
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["system-options"] }),
+          queryClient.invalidateQueries({ queryKey: ["groups"] }),
+          queryClient.invalidateQueries({ queryKey: ["user-groups"] }),
+        ]);
+        normalized = {
+          ...normalized,
+          TopupGroupRatio: transformGroupSetting(
+            normalized.TopupGroupRatio,
+            "TopupGroupRatio",
+            removedNames[0],
+            null,
+          ),
+          UserUsableGroups: transformGroupSetting(
+            normalized.UserUsableGroups,
+            "UserUsableGroups",
+            removedNames[0],
+            null,
+          ),
+          AuthorizationRequiredGroups: transformGroupSetting(
+            normalized.AuthorizationRequiredGroups,
+            "AuthorizationRequiredGroups",
+            removedNames[0],
+            null,
+          ),
+          GroupGroupRatio: transformGroupSetting(
+            normalized.GroupGroupRatio,
+            "GroupGroupRatio",
+            removedNames[0],
+            null,
+          ),
+          AutoGroups: transformGroupSetting(
+            normalized.AutoGroups,
+            "AutoGroups",
+            removedNames[0],
+            null,
+          ),
+          GroupSpecialUsableGroup: transformGroupSetting(
+            normalized.GroupSpecialUsableGroup,
+            "GroupSpecialUsableGroup",
+            removedNames[0],
+            null,
+          ),
+        };
+      }
 
       // Map form field names to API keys (most are 1:1, except GroupSpecialUsableGroup)
       const apiKeyMap: Record<string, string> = {
@@ -385,10 +584,21 @@ export function RatioSettingsCard({
 
       for (const key of updates) {
         const apiKey = apiKeyMap[key] || key;
-        await updateOption.mutateAsync({ key: apiKey, value: normalized[key] });
+        const response = await updateOption.mutateAsync({
+          key: apiKey,
+          value: normalized[key],
+        });
+        if (!response.success) return;
       }
+      groupNormalizedDefaults.current = normalized;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["system-options"] }),
+        queryClient.invalidateQueries({ queryKey: ["groups"] }),
+        queryClient.invalidateQueries({ queryKey: ["user-groups"] }),
+      ]);
+      toast.success(t("Group settings saved successfully"));
     },
-    [updateOption],
+    [isRoot, queryClient, t, updateOption],
   );
 
   const handleResetRatios = useCallback(() => {

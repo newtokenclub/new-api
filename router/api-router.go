@@ -566,6 +566,8 @@ func SetApiRouter(router *gin.Engine) {
 		groupRoute.Use(middleware.AdminAuth())
 		{
 			groupRoute.GET("/", controller.GetGroups)
+			groupRoute.POST("/rename", controller.RenameGroup)
+			groupRoute.POST("/delete", controller.DeleteGroup)
 		}
 
 		prefillGroupRoute := apiRouter.Group("/prefill_group")

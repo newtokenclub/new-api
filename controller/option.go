@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -225,6 +226,17 @@ func UpdateOption(c *gin.Context) {
 			return
 		}
 	case "GroupRatio":
+		var nextGroups map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(option.Value.(string)), &nextGroups); err != nil {
+			common.ApiErrorMsg(c, err.Error())
+			return
+		}
+		for group := range ratio_setting.GetGroupRatioCopy() {
+			if _, exists := nextGroups[group]; !exists {
+				common.ApiErrorMsg(c, "group deletion or rename must use the group management action")
+				return
+			}
+		}
 		err = ratio_setting.CheckGroupRatio(option.Value.(string))
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
