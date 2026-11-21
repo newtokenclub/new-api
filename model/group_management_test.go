@@ -32,6 +32,12 @@ func TestRenameGroupOption(t *testing.T) {
 			want:  `{"new":{"-:new":"remove","+:new":"description"}}`,
 		},
 		{
+			name:  "empty auto groups normalize to an empty array",
+			key:   "AutoGroups",
+			value: "",
+			want:  `[]`,
+		},
+		{
 			name:    "target nested key conflict",
 			key:     "GroupGroupRatio",
 			value:   `{"old":{"other":0.8},"new":{"other":0.9}}`,
@@ -65,6 +71,18 @@ func TestRenameGroupOption(t *testing.T) {
 }
 
 func TestRemoveGroupOption(t *testing.T) {
+	emptyAutoGroups, err := removeGroupOption("AutoGroups", " ", "retired")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if emptyAutoGroups != `[]` {
+		t.Fatalf("empty AutoGroups = %q, want []", emptyAutoGroups)
+	}
+
+	if _, err := removeGroupOption("AutoGroups", `not-json`, "retired"); err == nil {
+		t.Fatal("malformed non-empty AutoGroups should return an error")
+	}
+
 	got, err := removeGroupOption(
 		"group_ratio_setting.group_special_usable_group",
 		`{"vip":{"-:retired":"remove","+:kept":"keep"},"retired":{"+:vip":"desc"}}`,

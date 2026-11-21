@@ -312,8 +312,8 @@ func ensureGroupOptionNameAvailable(options map[string]string, newName string) e
 			continue
 		}
 		if key == "AutoGroups" {
-			var groups []string
-			if err := json.Unmarshal([]byte(value), &groups); err != nil {
+			groups, err := parseAutoGroups(value)
+			if err != nil {
 				return fmt.Errorf("invalid %s settings: %w", key, err)
 			}
 			for _, group := range groups {
@@ -407,8 +407,8 @@ func equalStringSlices(a, b []string) bool {
 
 func renameGroupOption(key, value, oldName, newName string) (string, error) {
 	if key == "AutoGroups" {
-		var groups []string
-		if err := json.Unmarshal([]byte(value), &groups); err != nil {
+		groups, err := parseAutoGroups(value)
+		if err != nil {
 			return value, err
 		}
 		seen := map[string]bool{}
@@ -486,8 +486,8 @@ func renameGroupOption(key, value, oldName, newName string) (string, error) {
 
 func removeGroupOption(key, value, name string) (string, error) {
 	if key == "AutoGroups" {
-		var groups []string
-		if err := json.Unmarshal([]byte(value), &groups); err != nil {
+		groups, err := parseAutoGroups(value)
+		if err != nil {
 			return value, err
 		}
 		filtered := make([]string, 0, len(groups))
@@ -532,4 +532,18 @@ func removeGroupOption(key, value, name string) (string, error) {
 	delete(object, name)
 	raw, err := json.Marshal(object)
 	return string(raw), err
+}
+
+func parseAutoGroups(value string) ([]string, error) {
+	if strings.TrimSpace(value) == "" {
+		return []string{}, nil
+	}
+	var groups []string
+	if err := json.Unmarshal([]byte(value), &groups); err != nil {
+		return nil, err
+	}
+	if groups == nil {
+		groups = []string{}
+	}
+	return groups, nil
 }
