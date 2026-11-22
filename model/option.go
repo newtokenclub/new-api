@@ -176,6 +176,8 @@ func InitOptionMap() {
 	common.OptionMap["AutomaticDisableKeywords"] = operation_setting.AutomaticDisableKeywordsToString()
 	common.OptionMap["AutomaticDisableStatusCodes"] = operation_setting.AutomaticDisableStatusCodesToString()
 	common.OptionMap["AutomaticRetryStatusCodes"] = operation_setting.AutomaticRetryStatusCodesToString()
+	common.OptionMap[ChannelPauseEnabledOption] = "false"
+	common.OptionMap[ChannelPauseMessageOption] = ""
 	common.OptionMap["ExposeRatioEnabled"] = strconv.FormatBool(ratio_setting.IsExposeRatioEnabled())
 	// Platform script-signing key (Ed25519). The seed is a secret and is never
 	// returned by GetOptions; only the key id is surfaced. Managed from the admin

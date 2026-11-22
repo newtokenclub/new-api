@@ -18,7 +18,7 @@ func SetVideoRouter(router *gin.Engine) {
 
 	videoV1Router := router.Group("/v1")
 	videoV1Router.Use(middleware.RouteTag("relay"))
-	videoV1Router.Use(middleware.TokenAuth(), middleware.Distribute())
+	videoV1Router.Use(middleware.TokenAuth(), middleware.ChannelPause(), middleware.Distribute())
 	{
 		videoV1Router.POST("/video/generations", controller.RelayTask)
 		videoV1Router.GET("/video/generations/:task_id", controller.RelayTaskFetch)
@@ -36,7 +36,7 @@ func SetVideoRouter(router *gin.Engine) {
 	// request/response contract expected by a DoubaoVideo downstream channel.
 	doubaoV3Router := router.Group("/api/v3/contents/generations")
 	doubaoV3Router.Use(middleware.RouteTag("relay"))
-	doubaoV3Router.Use(middleware.TokenAuth(), middleware.DoubaoVideoProtocolConvert(), middleware.Distribute())
+	doubaoV3Router.Use(middleware.TokenAuth(), middleware.ChannelPause(), middleware.DoubaoVideoProtocolConvert(), middleware.Distribute())
 	{
 		doubaoV3Router.POST("/tasks", middleware.DoubaoVideoCreateResponseConvert(), controller.RelayTask)
 		doubaoV3Router.GET("/tasks/:task_id", controller.RelayDoubaoVideoTaskFetch)
@@ -44,7 +44,7 @@ func SetVideoRouter(router *gin.Engine) {
 
 	klingV1Router := router.Group("/kling/v1")
 	klingV1Router.Use(middleware.RouteTag("relay"))
-	klingV1Router.Use(middleware.KlingRequestConvert(), middleware.TokenAuth(), middleware.Distribute())
+	klingV1Router.Use(middleware.KlingRequestConvert(), middleware.TokenAuth(), middleware.ChannelPause(), middleware.Distribute())
 	{
 		klingV1Router.POST("/videos/text2video", controller.RelayTask)
 		klingV1Router.POST("/videos/image2video", controller.RelayTask)
@@ -55,7 +55,7 @@ func SetVideoRouter(router *gin.Engine) {
 	// Jimeng official API routes - direct mapping to official API format
 	jimengOfficialGroup := router.Group("jimeng")
 	jimengOfficialGroup.Use(middleware.RouteTag("relay"))
-	jimengOfficialGroup.Use(middleware.JimengRequestConvert(), middleware.TokenAuth(), middleware.Distribute())
+	jimengOfficialGroup.Use(middleware.JimengRequestConvert(), middleware.TokenAuth(), middleware.ChannelPause(), middleware.Distribute())
 	{
 		// Maps to: /?Action=CVSync2AsyncSubmitTask&Version=2022-08-31 and /?Action=CVSync2AsyncGetResult&Version=2022-08-31
 		jimengOfficialGroup.POST("/", controller.RelayTask)

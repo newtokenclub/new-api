@@ -41,6 +41,26 @@ import type {
   TagOperationParams,
 } from './types'
 
+export type ChannelPauseState = {
+  enabled: boolean
+  message: string
+}
+
+export async function getChannelPause(): Promise<{
+  success: boolean
+  data: ChannelPauseState
+}> {
+  const res = await api.get('/api/channel/pause')
+  return res.data
+}
+
+export async function updateChannelPause(
+  data: ChannelPauseState
+): Promise<{ success: boolean; message?: string; data?: ChannelPauseState }> {
+  const res = await api.put('/api/channel/pause', data, channelActionConfig())
+  return res.data
+}
+
 export async function getChannelTaskHealth(
   id: number
 ): Promise<ChannelTaskHealthResponse> {

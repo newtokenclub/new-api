@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Plus,
   MoreHorizontal,
@@ -29,9 +29,12 @@ import {
   SortAsc,
   RefreshCw,
   ArrowUpFromLine,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Button } from '@/components/ui/button'
@@ -46,6 +49,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog } from '@/components/dialog'
 import {
   Tooltip,
   TooltipContent,
@@ -57,6 +62,7 @@ import {
   hasPermission,
 } from '@/lib/admin-permissions'
 import { useAuthStore } from '@/stores/auth-store'
+import { ROLE } from '@/lib/roles'
 
 import {
   handleDeleteAllDisabled,
@@ -64,6 +70,7 @@ import {
   handleTestAllChannels,
   handleUpdateAllBalances,
 } from '../lib'
+import { getChannelPause, updateChannelPause } from '../api'
 import { useChannels } from './channels-provider'
 
 export function ChannelsPrimaryButtons() {
@@ -85,12 +92,33 @@ export function ChannelsPrimaryButtons() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showConsistencyDialog, setShowConsistencyDialog] = useState(false)
   const [isRepairingConsistency, setIsRepairingConsistency] = useState(false)
+  const [pauseDialogOpen, setPauseDialogOpen] = useState(false)
+  const [pauseMessage, setPauseMessage] = useState('')
   const currentUser = useAuthStore((s) => s.auth.user)
+  const isRoot = currentUser?.role === ROLE.SUPER_ADMIN
   const canEditSensitive = hasPermission(
     currentUser,
     ADMIN_PERMISSION_RESOURCES.CHANNEL,
     ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
   )
+  const pauseQuery = useQuery({
+    queryKey: ['channel-pause'],
+    queryFn: getChannelPause,
+    staleTime: 15 * 1000,
+  })
+  const pauseMutation = useMutation({
+    mutationFn: updateChannelPause,
+    onSuccess: (data) => {
+      if (!data.success) {
+        toast.error(data.message || t('Failed to update channel pause state'))
+        return
+      }
+      queryClient.invalidateQueries({ queryKey: ['channel-pause'] })
+      setPauseDialogOpen(false)
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+  const channelPause = pauseQuery.data?.data
 
   const handleTagModeToggle = (checked: boolean) => {
     localStorage.setItem('enable-tag-mode', String(checked))
@@ -121,6 +149,67 @@ export function ChannelsPrimaryButtons() {
 
   return (
     <>
+      {channelPause?.enabled && (
+        <div className='mr-2 flex max-w-[26rem] items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-sm text-destructive'>
+          <PauseCircle className='h-4 w-4 shrink-0' />
+          <span className='truncate' title={channelPause.message}>
+            {channelPause.message}
+          </span>
+          {isRoot && (
+            <Button
+              size='sm'
+              variant='outline'
+              className='shrink-0'
+              onClick={() => pauseMutation.mutate({ enabled: false, message: channelPause.message })}
+              disabled={pauseMutation.isPending}
+            >
+              <PlayCircle className='mr-1 h-4 w-4' />
+              {t('Resume channels')}
+            </Button>
+          )}
+        </div>
+      )}
+      {isRoot && !channelPause?.enabled && (
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={() => {
+            setPauseMessage('')
+            setPauseDialogOpen(true)
+          }}
+        >
+          <PauseCircle className='mr-1 h-4 w-4' />
+          {t('Pause all channels')}
+        </Button>
+      )}
+      <Dialog
+        open={pauseDialogOpen}
+        onOpenChange={setPauseDialogOpen}
+        title={t('Pause all channels')}
+        description={t('All new channel requests will be rejected while paused.')}
+        footer={
+          <>
+            <Button variant='outline' onClick={() => setPauseDialogOpen(false)}>
+              {t('Cancel')}
+            </Button>
+            <Button
+              variant='destructive'
+              disabled={!pauseMessage.trim() || pauseMutation.isPending}
+              onClick={() => pauseMutation.mutate({ enabled: true, message: pauseMessage.trim() })}
+            >
+              {t('Confirm pause')}
+            </Button>
+          </>
+        }
+      >
+        <Textarea
+          value={pauseMessage}
+          onChange={(event) => setPauseMessage(event.target.value)}
+          placeholder={t('Example: Server maintenance, please try again later.')}
+          rows={4}
+          maxLength={500}
+        />
+      </Dialog>
       <div className='flex items-center gap-2'>
         {/* Desktop: Toggle switches visible */}
         <div className='hidden items-center gap-2 rounded-md border px-3 py-1.5 sm:flex'>

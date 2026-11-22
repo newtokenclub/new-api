@@ -1,4 +1,10 @@
 {
+  "Pause all channels": "暂停所有渠道",
+  "Resume channels": "恢复渠道",
+  "Confirm pause": "确认暂停",
+  "All new channel requests will be rejected while paused.": "暂停期间所有新的渠道请求都会被拒绝。",
+  "Example: Server maintenance, please try again later.": "例如：服务器网络升级，停机维护30分钟",
+  "Failed to update channel pause state": "更新渠道暂停状态失败",
   "translation": {
     "Task Log Support": "任务日志支持",
     "Subordinate remark": "下级备注",
