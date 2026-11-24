@@ -77,12 +77,37 @@ type GroupRatioFormProps = {
   form: UseFormReturn<GroupFormValues>;
   onSave: (values: GroupFormValues) => Promise<void>;
   isSaving: boolean;
+  pendingGroupRename?: { oldName: string; newName: string };
 };
+
+function renameSmartGroupTargets(
+  value: string,
+  oldName?: string,
+  newName?: string,
+): string {
+  if (!oldName || !newName) return value;
+  try {
+    const groups = JSON.parse(value) as Record<
+      string,
+      { default_group?: string; routes?: Array<{ group: string }> }
+    >;
+    for (const group of Object.values(groups)) {
+      if (group.default_group === oldName) group.default_group = newName;
+      for (const route of group.routes ?? []) {
+        if (route.group === oldName) route.group = newName;
+      }
+    }
+    return JSON.stringify(groups, null, 2);
+  } catch {
+    return value;
+  }
+}
 
 export const GroupRatioForm = memo(function GroupRatioForm({
   form,
   onSave,
   isSaving,
+  pendingGroupRename,
 }: GroupRatioFormProps) {
   const { t } = useTranslation();
   const [editMode, setEditMode] = useState<"visual" | "json">("visual");
@@ -149,7 +174,11 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               )}
               groupGroupRatio={form.watch("GroupGroupRatio")}
               autoGroups={form.watch("AutoGroups")}
-              smartGroups={form.watch("SmartGroups")}
+              smartGroups={renameSmartGroupTargets(
+                form.watch("SmartGroups"),
+                pendingGroupRename?.oldName,
+                pendingGroupRename?.newName,
+              )}
               onSaveSmartGroups={() => void form.handleSubmit(onSave)()}
               isSaving={isSaving}
               onSmartGroupInvalidChange={setSmartGroupInvalid}

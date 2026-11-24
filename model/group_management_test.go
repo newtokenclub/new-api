@@ -32,6 +32,12 @@ func TestRenameGroupOption(t *testing.T) {
 			want:  `{"new":{"-:new":"remove","+:new":"description"}}`,
 		},
 		{
+			name:  "smart group route and default targets",
+			key:   SmartGroupsOption,
+			value: `{"smart":{"parameter":"resolution","default_group":"old","routes":[{"values":["720p"],"group":"old"}],"user_ids":[7]}}`,
+			want:  `{"smart":{"parameter":"resolution","default_group":"new","routes":[{"values":["720p"],"group":"new"}],"user_ids":[7]}}`,
+		},
+		{
 			name:  "empty auto groups normalize to an empty array",
 			key:   "AutoGroups",
 			value: "",

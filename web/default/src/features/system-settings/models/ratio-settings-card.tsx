@@ -91,6 +91,14 @@ function getJsonKeys(value: string): string[] {
   return Object.keys(parsed);
 }
 
+function getJsonKeysOrEmpty(value: string): string[] {
+  try {
+    return getJsonKeys(value);
+  } catch {
+    return [];
+  }
+}
+
 function transformGroupSetting(
   value: string,
   key: string,
@@ -339,6 +347,21 @@ export function RatioSettingsCard({
     },
   });
 
+  const currentGroupNames = getJsonKeysOrEmpty(groupForm.watch("GroupRatio"));
+  const savedGroupNames = getJsonKeysOrEmpty(
+    groupNormalizedDefaults.current.GroupRatio,
+  );
+  const removedGroupNames = savedGroupNames.filter(
+    (name) => !currentGroupNames.includes(name),
+  );
+  const addedGroupNames = currentGroupNames.filter(
+    (name) => !savedGroupNames.includes(name),
+  );
+  const pendingGroupRename =
+    removedGroupNames.length === 1 && addedGroupNames.length === 1
+      ? { oldName: removedGroupNames[0], newName: addedGroupNames[0] }
+      : undefined;
+
   useEffect(() => {
     modelNormalizedDefaults.current = {
       ModelPrice: normalizeJsonString(modelDefaults.ModelPrice),
@@ -498,11 +521,6 @@ export function RatioSettingsCard({
           toast.error(response.message || t("Group rename failed"));
           return;
         }
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["system-options"] }),
-          queryClient.invalidateQueries({ queryKey: ["groups"] }),
-          queryClient.invalidateQueries({ queryKey: ["user-groups"] }),
-        ]);
         normalized = {
           ...normalized,
           TopupGroupRatio: transformGroupSetting(
@@ -553,11 +571,6 @@ export function RatioSettingsCard({
           toast.error(response.message || t("Group deletion failed"));
           return;
         }
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["system-options"] }),
-          queryClient.invalidateQueries({ queryKey: ["groups"] }),
-          queryClient.invalidateQueries({ queryKey: ["user-groups"] }),
-        ]);
         normalized = {
           ...normalized,
           TopupGroupRatio: transformGroupSetting(
@@ -673,6 +686,7 @@ export function RatioSettingsCard({
           form={groupForm}
           onSave={saveGroupRatios}
           isSaving={updateOption.isPending}
+          pendingGroupRename={pendingGroupRename}
         />
       );
     }
