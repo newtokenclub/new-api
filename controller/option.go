@@ -140,6 +140,17 @@ func UpdateOption(c *gin.Context) {
 		option.Value = fmt.Sprintf("%v", option.Value)
 	}
 	switch option.Key {
+	case model.SmartGroupsOption:
+		if c.GetInt("role") != common.RoleRootUser {
+			common.ApiErrorMsg(c, "root permission required")
+			return
+		}
+		if err := model.SaveSmartGroups(option.Value.(string)); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
 	case "QuotaForInviter", "QuotaForInvitee":
 		if isPositiveOptionValue(option.Value.(string)) && !operation_setting.IsPaymentComplianceConfirmed() {
 			common.ApiErrorI18n(c, i18n.MsgPaymentComplianceRequired)

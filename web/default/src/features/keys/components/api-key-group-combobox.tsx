@@ -42,6 +42,7 @@ export type ApiKeyGroupOption = {
   label: string
   desc?: string
   ratio?: number | string
+  type?: 'smart' | 'pricing'
 }
 
 type ApiKeyGroupComboboxProps = {
@@ -92,6 +93,16 @@ function GroupRatioBadge({ ratio }: { ratio: ApiKeyGroupOption['ratio'] }) {
       )}
     >
       {label}
+    </Badge>
+  )
+}
+
+function GroupTypeBadge({ type }: { type: ApiKeyGroupOption['type'] }) {
+  const { t } = useTranslation()
+  if (type !== 'smart') return null
+  return (
+    <Badge variant='secondary' className='shrink-0'>
+      {t('Smart group')}
     </Badge>
   )
 }
@@ -155,6 +166,7 @@ export function ApiKeyGroupCombobox({
             )}
           </span>
           <span className='hidden sm:block'>
+            <GroupTypeBadge type={selectedOption?.type} />
             <GroupRatioBadge ratio={selectedOption?.ratio} />
           </span>
         </span>
@@ -198,7 +210,10 @@ export function ApiKeyGroupCombobox({
                       </span>
                     )}
                   </span>
-                  <GroupRatioBadge ratio={option.ratio} />
+                  <span className='flex shrink-0 items-center gap-2'>
+                    <GroupTypeBadge type={option.type} />
+                    <GroupRatioBadge ratio={option.ratio} />
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>

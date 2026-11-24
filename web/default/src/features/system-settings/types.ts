@@ -224,6 +224,7 @@ export type ModelSettings = {
   AuthorizationRequiredGroups?: string
   GroupGroupRatio: string
   AutoGroups: string
+  SmartGroups?: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
   RetryTimes: number
@@ -280,6 +281,7 @@ export type BillingSettings = {
   AuthorizationRequiredGroups: string
   GroupGroupRatio: string
   AutoGroups: string
+  SmartGroups?: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
   PayAddress: string

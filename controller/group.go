@@ -94,6 +94,19 @@ func GetUserGroups(c *gin.Context) {
 			}
 		}
 	}
+	if c.Query("include_smart") == "true" {
+		for groupName, group := range model.GetSmartGroups() {
+			usableGroups[groupName] = map[string]interface{}{
+				"type":          "smart",
+				"desc":          group.Description,
+				"parameter":     group.Parameter,
+				"routes":        group.Routes,
+				"default_group": group.DefaultGroup,
+				"user_selectable": group.UserSelectable,
+				"authorization_required": group.AuthorizationRequired,
+			}
+		}
+	}
 	if _, ok := userUsableGroups["auto"]; ok {
 		usableGroups["auto"] = map[string]interface{}{
 			"ratio": "自动",

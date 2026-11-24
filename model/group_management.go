@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/QuantumNous/new-api/common"
 	"gorm.io/gorm"
 )
 
 var groupOptionKeys = []string{
 	"GroupRatio", "TopupGroupRatio", "UserUsableGroups", "AuthorizationRequiredGroups",
 	"GroupGroupRatio", "AutoGroups", "group_ratio_setting.group_special_usable_group",
-	"ModelRequestRateLimitGroup",
+	"ModelRequestRateLimitGroup", SmartGroupsOption,
 }
 
 func RenameGroup(oldName, newName string) error {
@@ -222,6 +223,16 @@ func getGroupOptions(tx *gorm.DB) ([]Option, map[string]string, error) {
 }
 
 func ensureGroupUnused(db *gorm.DB, name string) error {
+	for smartName, smartGroup := range GetSmartGroups() {
+		if smartGroup.DefaultGroup == name {
+			return fmt.Errorf("group %q is the default target of smart group %q", name, smartName)
+		}
+		for _, route := range smartGroup.Routes {
+			if route.Group == name {
+				return fmt.Errorf("group %q is a target of smart group %q", name, smartName)
+			}
+		}
+	}
 	checks := []struct{ table, column string }{
 		{"tokens", commonGroupCol},
 		{"subscription_plans", "upgrade_group"}, {"subscription_plans", "downgrade_group"},
@@ -406,6 +417,25 @@ func equalStringSlices(a, b []string) bool {
 }
 
 func renameGroupOption(key, value, oldName, newName string) (string, error) {
+	if key == SmartGroupsOption {
+		var groups SmartGroupMap
+		if err := common.UnmarshalJsonStr(value, &groups); err != nil {
+			return value, err
+		}
+		for name, group := range groups {
+			if group.DefaultGroup == oldName {
+				group.DefaultGroup = newName
+			}
+			for index := range group.Routes {
+				if group.Routes[index].Group == oldName {
+					group.Routes[index].Group = newName
+				}
+			}
+			groups[name] = group
+		}
+		raw, err := common.Marshal(groups)
+		return string(raw), err
+	}
 	if key == "AutoGroups" {
 		groups, err := parseAutoGroups(value)
 		if err != nil {
@@ -485,6 +515,9 @@ func renameGroupOption(key, value, oldName, newName string) (string, error) {
 }
 
 func removeGroupOption(key, value, name string) (string, error) {
+	if key == SmartGroupsOption {
+		return value, nil
+	}
 	if key == "AutoGroups" {
 		groups, err := parseAutoGroups(value)
 		if err != nil {

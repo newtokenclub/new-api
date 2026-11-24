@@ -155,6 +155,24 @@ function transformGroupSetting(
   return JSON.stringify(result, null, 2);
 }
 
+function transformSmartGroupTargets(
+  value: string,
+  oldName: string,
+  newName: string,
+): string {
+  const groups = JSON.parse(value) as Record<
+    string,
+    { default_group?: string; routes?: Array<{ group: string }> }
+  >;
+  for (const group of Object.values(groups)) {
+    if (group.default_group === oldName) group.default_group = newName;
+    for (const route of group.routes ?? []) {
+      if (route.group === oldName) route.group = newName;
+    }
+  }
+  return JSON.stringify(groups, null, 2);
+}
+
 function createJsonStringField(
   t: Translate,
   options?: Parameters<typeof validateJsonString>[1],
@@ -200,6 +218,7 @@ const createGroupSchema = (t: Translate) =>
     }),
     DefaultUseAutoGroup: z.boolean(),
     GroupSpecialUsableGroup: createJsonStringField(t),
+    SmartGroups: createJsonStringField(t),
   });
 
 type ModelFormValues = z.infer<ReturnType<typeof createModelSchema>>;
@@ -275,6 +294,7 @@ export function RatioSettingsCard({
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup,
     ),
+    SmartGroups: normalizeJsonString(groupDefaults.SmartGroups),
   });
   const modelSchema = useMemo(() => createModelSchema(t), [t]);
   const groupSchema = useMemo(() => createGroupSchema(t), [t]);
@@ -315,6 +335,7 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup,
       ),
+      SmartGroups: formatJsonForTextarea(groupDefaults.SmartGroups),
     },
   });
 
@@ -367,6 +388,7 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup,
       ),
+      SmartGroups: normalizeJsonString(groupDefaults.SmartGroups),
     };
 
     groupForm.reset({
@@ -382,6 +404,7 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup,
       ),
+      SmartGroups: formatJsonForTextarea(groupDefaults.SmartGroups),
     });
   }, [groupDefaults, groupForm]);
 
@@ -443,6 +466,7 @@ export function RatioSettingsCard({
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup,
         ),
+        SmartGroups: normalizeJsonString(values.SmartGroups),
       };
 
       const currentNames = new Set(
@@ -514,6 +538,11 @@ export function RatioSettingsCard({
           GroupSpecialUsableGroup: transformGroupSetting(
             normalized.GroupSpecialUsableGroup,
             "GroupSpecialUsableGroup",
+            removedNames[0],
+            addedNames[0],
+          ),
+          SmartGroups: transformSmartGroupTargets(
+            normalized.SmartGroups,
             removedNames[0],
             addedNames[0],
           ),

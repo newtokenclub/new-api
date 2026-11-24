@@ -70,6 +70,7 @@ type GroupFormValues = {
   AutoGroups: string;
   DefaultUseAutoGroup: boolean;
   GroupSpecialUsableGroup: string;
+  SmartGroups: string;
 };
 
 type GroupRatioFormProps = {
@@ -86,6 +87,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
   const { t } = useTranslation();
   const [editMode, setEditMode] = useState<"visual" | "json">("visual");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [smartGroupInvalid, setSmartGroupInvalid] = useState(false);
 
   const handleFieldChange = useCallback(
     (field: keyof GroupFormValues, value: string) => {
@@ -131,7 +133,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
             type="button"
             size="sm"
             onClick={form.handleSubmit(onSave)}
-            disabled={isSaving}
+            disabled={isSaving || (editMode === "visual" && smartGroupInvalid)}
           >
             {isSaving ? t("Saving...") : t("Save group ratios")}
           </Button>
@@ -147,6 +149,8 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               )}
               groupGroupRatio={form.watch("GroupGroupRatio")}
               autoGroups={form.watch("AutoGroups")}
+              smartGroups={form.watch("SmartGroups")}
+              onSmartGroupInvalidChange={setSmartGroupInvalid}
               onChange={(field, value) =>
                 handleFieldChange(field as keyof GroupFormValues, value)
               }
@@ -181,6 +185,23 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                 </SettingsSwitchItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="SmartGroups"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("Smart groups")}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={8} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {t("JSON object for request-parameter routing to pricing groups.")}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         ) : (
           <SettingsForm onSubmit={form.handleSubmit(onSave)}>
@@ -196,6 +217,25 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                   <FormDescription>
                     {t(
                       "JSON map of group → ratio applied when the user selects the group explicitly.",
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="SmartGroups"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("Smart groups")}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={8} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      "JSON object for request-parameter routing to pricing groups.",
                     )}
                   </FormDescription>
                   <FormMessage />

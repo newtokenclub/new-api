@@ -1,8 +1,4 @@
 {
-  "Pending approvals": "Pending approvals",
-  "Quota applications": "Quota applications",
-  "Affiliate settlement applications": "Affiliate settlement applications",
-  "No pending approvals": "No pending approvals",
   "Quota Applications": "Quota Applications",
   "Team reconciliation": "Team reconciliation",
   "My reconciliation": "My reconciliation",
@@ -19,7 +15,6 @@
   "End date": "End date",
   "Last 30 days": "Last 30 days",
   "Select a valid date range of no more than 366 days": "Select a valid date range of no more than 366 days",
-  "All sales": "All sales",
   "R2 attachment storage": "R2 attachment storage",
   "Used for quota application screenshots. Credentials are never displayed after saving.": "Used for quota application screenshots. Credentials are never displayed after saving.",
   "Enable R2 uploads": "Enable R2 uploads",
@@ -40,7 +35,6 @@
   "Invoiceable CNY amount cannot be negative.": "Invoiceable CNY amount cannot be negative.",
   "Attachment upload failed": "Attachment upload failed",
   "Payment status": "Payment status",
-  "Unpaid": "Unpaid",
   "Invoice requirement": "Invoice requirement",
   "Invoice required": "Invoice required",
   "No invoice required": "No invoice required",
@@ -97,6 +91,11 @@
   "Bill by request": "Bill by request",
   "Bill by second": "Bill by second",
   "Display unit": "Display unit",
+  "Group rename failed": "Failed to rename the group.",
+  "Group deletion failed": "Failed to delete the group.",
+  "Group settings saved successfully": "Group settings saved successfully.",
+  "Only root administrators can rename or delete groups": "Only root administrators can rename or delete groups.",
+  "Rename or delete one group at a time": "Rename or delete one group at a time.",
   "Reference video": "Reference video",
   "Reference video token price": "Reference video token price",
   "Reference video token price must be greater than 0.": "Reference video token price must be greater than 0.",
@@ -208,5 +207,9 @@
   "Search username": "Search username",
   "Created at": "Created at",
   "Last login": "Last login",
-  "Consumption": "Consumption"
+  "Consumption": "Consumption",
+  "Task status": "Task status",
+  "All task statuses": "All task statuses",
+  "Successful tasks": "Successful tasks",
+  "Failed tasks": "Failed tasks"
 }

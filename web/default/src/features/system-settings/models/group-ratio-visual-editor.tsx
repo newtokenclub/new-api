@@ -41,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { safeJsonParse } from "../utils/json-parser";
+import { SmartGroupsEditor } from "./smart-groups-editor";
 
 type GroupRatioVisualEditorProps = {
   groupRatio: string;
@@ -49,6 +50,8 @@ type GroupRatioVisualEditorProps = {
   authorizationRequiredGroups: string;
   groupGroupRatio: string;
   autoGroups: string;
+  smartGroups: string;
+  onSmartGroupInvalidChange: (invalid: boolean) => void;
   onChange: (field: string, value: string) => void;
 };
 
@@ -188,6 +191,8 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   authorizationRequiredGroups,
   groupGroupRatio,
   autoGroups,
+  smartGroups,
+  onSmartGroupInvalidChange,
   onChange,
 }: GroupRatioVisualEditorProps) {
   const { t } = useTranslation();
@@ -435,6 +440,17 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         userUsableGroups={userUsableGroups}
         authorizationRequiredGroups={authorizationRequiredGroups}
         onChange={onChange}
+      />
+      <SmartGroupsEditor
+        value={smartGroups}
+        groupNames={Object.keys(
+          safeJsonParse<Record<string, number>>(groupRatio, {
+            fallback: {},
+            silent: true,
+          }),
+        )}
+        onChange={(value) => onChange("SmartGroups", value)}
+        onInvalidChange={onSmartGroupInvalidChange}
       />
 
       {/* Topup Group Ratios */}

@@ -175,7 +175,9 @@ func AddToken(c *gin.Context) {
 	if token.Group != "" {
 		if user, e := model.GetUserCache(c.GetInt("id")); e == nil {
 			userSettings := user.GetSetting()
-			if _, ok := service.GetUserUsableGroupsWithRestrictions(user.Group, userSettings.RestrictedPublicGroups)[token.Group]; !ok {
+			if model.IsSmartGroup(token.Group) {
+				// Access is checked against the resolved pricing group per request.
+			} else if _, ok := service.GetUserUsableGroupsWithRestrictions(user.Group, userSettings.RestrictedPublicGroups)[token.Group]; !ok {
 				common.ApiError(c, fmt.Errorf("no permission to use group %s", token.Group))
 				return
 			}
@@ -269,7 +271,9 @@ func UpdateToken(c *gin.Context) {
 	if token.Group != "" {
 		if user, e := model.GetUserCache(userId); e == nil {
 			userSettings := user.GetSetting()
-			if _, ok := service.GetUserUsableGroupsWithRestrictions(user.Group, userSettings.RestrictedPublicGroups)[token.Group]; !ok {
+			if model.IsSmartGroup(token.Group) {
+				// Access is checked against the resolved pricing group per request.
+			} else if _, ok := service.GetUserUsableGroupsWithRestrictions(user.Group, userSettings.RestrictedPublicGroups)[token.Group]; !ok {
 				common.ApiError(c, fmt.Errorf("no permission to use group %s", token.Group))
 				return
 			}

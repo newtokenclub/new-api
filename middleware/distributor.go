@@ -38,6 +38,30 @@ func Distribute() func(c *gin.Context) {
 			abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorInvalidRequest, map[string]any{"Error": err.Error()}))
 			return
 		}
+		tokenGroup := common.GetContextKeyString(c, constant.ContextKeyTokenGroup)
+		if model.IsSmartGroup(tokenGroup) && shouldSelectChannel {
+			parameterValue, parameterErr := getSmartGroupParameterValue(c, model.GetSmartGroups()[tokenGroup].Parameter)
+			if parameterErr != nil {
+				abortWithOpenAiMessage(c, http.StatusBadRequest, parameterErr.Error())
+				return
+			}
+			pricingGroup, _, resolveErr := model.ResolveSmartGroup(tokenGroup, parameterValue)
+			if resolveErr != nil {
+				abortWithOpenAiMessage(c, http.StatusForbidden, resolveErr.Error())
+				return
+			}
+			if !ratio_setting.ContainsGroupRatio(pricingGroup) {
+				abortWithOpenAiMessage(c, http.StatusServiceUnavailable, "smart group resolved to a missing pricing group")
+				return
+			}
+			user, userErr := model.GetUserCache(c.GetInt("id"))
+			if userErr != nil || !service.UserCanUseGroup(user.Group, user.GetSetting().RestrictedPublicGroups, user.GetSetting().AuthorizedGroups, pricingGroup) {
+				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("No permission to use pricing group %s; administrator authorization may be required", pricingGroup))
+				return
+			}
+			common.SetContextKey(c, constant.ContextKeyUsingGroup, pricingGroup)
+			common.SetContextKey(c, constant.ContextKeyTokenGroup, pricingGroup)
+		}
 		if ok {
 			id, err := strconv.Atoi(channelId.(string))
 			if err != nil {
@@ -92,6 +116,10 @@ func Distribute() func(c *gin.Context) {
 						return
 					}
 					if playgroundRequest.Group != "" {
+						if model.IsSmartGroup(common.GetContextKeyString(c, constant.ContextKeyTokenGroup)) && playgroundRequest.Group != usingGroup {
+							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
+							return
+						}
 						userId := c.GetInt("id")
 						user, userErr := model.GetUserCache(userId)
 						userGroup := usingGroup
@@ -423,13 +451,47 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 		}
 		modelRequest.Model = req.Model
 		modelRequest.Group = req.Group
-		common.SetContextKey(c, constant.ContextKeyTokenGroup, modelRequest.Group)
+		if !model.IsSmartGroup(common.GetContextKeyString(c, constant.ContextKeyTokenGroup)) {
+			common.SetContextKey(c, constant.ContextKeyTokenGroup, modelRequest.Group)
+		}
 	}
 
 	if strings.HasPrefix(c.Request.URL.Path, "/v1/responses/compact") && modelRequest.Model != "" {
 		modelRequest.Model = ratio_setting.WithCompactModelSuffix(modelRequest.Model)
 	}
 	return &modelRequest, shouldSelectChannel, nil
+}
+
+func getSmartGroupParameterValue(c *gin.Context, parameter string) (string, error) {
+	parameter = strings.TrimSpace(parameter)
+	if parameter == "" {
+		return "", errors.New("smart group request parameter is not configured")
+	}
+	if value := c.Request.URL.Query().Get(parameter); value != "" {
+		return value, nil
+	}
+	if value := c.Request.PostFormValue(parameter); value != "" {
+		return value, nil
+	}
+	storage, err := common.GetBodyStorage(c)
+	if err != nil {
+		return "", err
+	}
+	body, err := storage.Bytes()
+	if err != nil {
+		return "", err
+	}
+	value := gjson.GetBytes(body, parameter)
+	if !value.Exists() {
+		value = gjson.GetBytes(body, "metadata."+parameter)
+	}
+	if value.Exists() && value.Type == gjson.String {
+		return value.String(), nil
+	}
+	if value.Exists() && value.Type != gjson.Null {
+		return value.Raw, nil
+	}
+	return "", nil
 }
 
 // 修复 #4834: GET /v1/video/generations/:task_id && /v1/video/:task_id 此前不解析 model，
