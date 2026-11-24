@@ -51,6 +51,8 @@ type GroupRatioVisualEditorProps = {
   groupGroupRatio: string;
   autoGroups: string;
   smartGroups: string;
+  onSaveSmartGroups: () => void;
+  isSaving: boolean;
   onSmartGroupInvalidChange: (invalid: boolean) => void;
   onChange: (field: string, value: string) => void;
 };
@@ -192,6 +194,8 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   groupGroupRatio,
   autoGroups,
   smartGroups,
+  onSaveSmartGroups,
+  isSaving,
   onSmartGroupInvalidChange,
   onChange,
 }: GroupRatioVisualEditorProps) {
@@ -451,6 +455,8 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         )}
         onChange={(value) => onChange("SmartGroups", value)}
         onInvalidChange={onSmartGroupInvalidChange}
+        onSave={onSaveSmartGroups}
+        isSaving={isSaving}
       />
 
       {/* Topup Group Ratios */}

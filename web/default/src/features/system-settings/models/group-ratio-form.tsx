@@ -150,6 +150,8 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               groupGroupRatio={form.watch("GroupGroupRatio")}
               autoGroups={form.watch("AutoGroups")}
               smartGroups={form.watch("SmartGroups")}
+              onSaveSmartGroups={() => void form.handleSubmit(onSave)()}
+              isSaving={isSaving}
               onSmartGroupInvalidChange={setSmartGroupInvalid}
               onChange={(field, value) =>
                 handleFieldChange(field as keyof GroupFormValues, value)

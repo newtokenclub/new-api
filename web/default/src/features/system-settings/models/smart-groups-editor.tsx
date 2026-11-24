@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -31,6 +31,8 @@ type Props = {
   groupNames: string[];
   onChange: (value: string) => void;
   onInvalidChange: (invalid: boolean) => void;
+  onSave: () => void;
+  isSaving: boolean;
 };
 
 function parseGroups(value: string): SmartGroupDraft[] {
@@ -60,14 +62,18 @@ export function SmartGroupsEditor({
   groupNames,
   onChange,
   onInvalidChange,
+  onSave,
+  isSaving,
 }: Props) {
   const { t } = useTranslation();
   const [rows, setRows] = useState(() => parseGroups(value));
   const [sourceValue, setSourceValue] = useState(value);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (value === sourceValue) return;
     setRows(parseGroups(value));
+    setEditingId(null);
     setSourceValue(value);
   }, [sourceValue, value]);
 
@@ -128,10 +134,11 @@ export function SmartGroupsEditor({
     while (rows.some((row) => row.name === name) || groupNames.includes(name)) {
       name = `smart_group_${++index}`;
     }
+    const id = crypto.randomUUID();
     emit([
       ...rows,
       {
-        id: crypto.randomUUID(),
+        id,
         name,
         description: "",
         parameter: "resolution",
@@ -139,6 +146,7 @@ export function SmartGroupsEditor({
         default_group: groupNames[0] || "",
       },
     ]);
+    setEditingId(id);
   };
 
   const updateRow = (index: number, patch: Partial<SmartGroupDraft>) => {
@@ -157,9 +165,18 @@ export function SmartGroupsEditor({
               )}
             </CardDescription>
           </div>
-          <Button size="sm" onClick={addGroup} disabled={groupNames.length === 0}>
+          <Button type="button" size="sm" onClick={addGroup} disabled={groupNames.length === 0}>
             <Plus className="mr-2 h-4 w-4" />
             {t("Add smart group")}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={onSave}
+            disabled={isSaving || invalid}
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {isSaving ? t("Saving...") : t("Save smart groups")}
           </Button>
         </div>
       </CardHeader>
@@ -172,7 +189,42 @@ export function SmartGroupsEditor({
             {t("Create a pricing group before configuring smart groups.")}
           </p>
         )}
+        {rows.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">{t("Configured smart groups")}</h3>
+            <div className="divide-y rounded-md border">
+              {rows.map((row) => (
+                <div
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-3 p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{row.name}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {row.description || row.parameter} · {t("{{count}} routing rules", { count: row.routes.length })}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={editingId === row.id ? "secondary" : "outline"}
+                    onClick={() => setEditingId(editingId === row.id ? null : row.id)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {editingId === row.id ? t("Editing") : t("Edit")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {rows.length > 0 && !editingId && (
+          <p className="text-muted-foreground text-sm">
+            {t("Select a smart group above to edit its settings.")}
+          </p>
+        )}
         {rows.map((row, index) => {
+          if (row.id !== editingId) return null;
           const badName =
             !row.name.trim() ||
             ["auto", "default"].includes(row.name.trim()) ||
@@ -247,7 +299,7 @@ export function SmartGroupsEditor({
                     {groupNames.map((name) => <option key={name} value={name}>{name}</option>)}
                   </select>
                 </label>
-                <Button type="button" variant="ghost" size="icon" aria-label={t("Delete")} onClick={() => emit(rows.filter((_, rowIndex) => rowIndex !== index))}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("Delete")} onClick={() => { emit(rows.filter((_, rowIndex) => rowIndex !== index)); setEditingId(null); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
