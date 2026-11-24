@@ -10,7 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
 
 type SmartRoute = { values: string[]; group: string };
 type SmartGroup = {
@@ -18,13 +20,18 @@ type SmartGroup = {
   parameter: string;
   routes: SmartRoute[];
   default_group: string;
+  user_selectable?: boolean;
+  user_ids?: number[];
 };
 type RouteDraft = { id: string; value: string; group: string };
-type SmartGroupDraft = Omit<SmartGroup, "routes"> & {
+type SmartGroupDraft = Omit<SmartGroup, "routes" | "user_selectable" | "user_ids"> & {
   id: string;
   name: string;
   routes: RouteDraft[];
+  user_selectable: boolean;
+  user_ids: number[];
 };
+type SmartGroupUser = { id: number; username: string; display_name: string };
 
 type Props = {
   value: string;
@@ -51,6 +58,8 @@ function parseGroups(value: string): SmartGroupDraft[] {
         })),
       ),
       default_group: group.default_group || "",
+      user_selectable: group.user_selectable ?? true,
+      user_ids: group.user_ids || [],
     }));
   } catch {
     return [];
@@ -69,6 +78,42 @@ export function SmartGroupsEditor({
   const [rows, setRows] = useState(() => parseGroups(value));
   const [sourceValue, setSourceValue] = useState(value);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState("");
+  const [userSearchResults, setUserSearchResults] = useState<SmartGroupUser[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [userDetails, setUserDetails] = useState<Record<number, SmartGroupUser>>({});
+
+  const assignedUserIds = useMemo(
+    () => [...new Set(rows.flatMap((row) => row.user_ids))].sort((a, b) => a - b),
+    [rows],
+  );
+  const assignedUserIdsKey = assignedUserIds.join(",");
+
+  useEffect(() => {
+    if (!assignedUserIdsKey) return;
+    let cancelled = false;
+    const ids = assignedUserIdsKey.split(",").map(Number);
+    const chunks = Array.from({ length: Math.ceil(ids.length / 200) }, (_, index) =>
+      ids.slice(index * 200, (index + 1) * 200),
+    );
+    Promise.all(
+      chunks.map((chunk) =>
+        api.get<{ success: boolean; data?: SmartGroupUser[] }>("/api/group/smart/users", {
+          params: { ids: chunk.join(",") },
+        }),
+      ),
+    ).then((responses) => {
+      if (cancelled) return;
+      const users = responses.flatMap((response) => response.data.data || []);
+      setUserDetails((current) => ({
+        ...current,
+        ...Object.fromEntries(users.map((user) => [user.id, user])),
+      }));
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [assignedUserIdsKey]);
 
   useEffect(() => {
     if (value === sourceValue) return;
@@ -119,6 +164,8 @@ export function SmartGroupsEditor({
               group: route.group,
             })),
           default_group: row.default_group,
+          user_selectable: row.user_selectable,
+          user_ids: row.user_ids,
         };
       }
       const serialized = JSON.stringify(config, null, 2);
@@ -144,6 +191,8 @@ export function SmartGroupsEditor({
         parameter: "resolution",
         routes: [],
         default_group: groupNames[0] || "",
+        user_selectable: true,
+        user_ids: [],
       },
     ]);
     setEditingId(id);
@@ -151,6 +200,34 @@ export function SmartGroupsEditor({
 
   const updateRow = (index: number, patch: Partial<SmartGroupDraft>) => {
     emit(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
+  };
+
+  const searchUsers = async () => {
+    const keyword = userSearch.trim();
+    if (!keyword) {
+      setUserSearchResults([]);
+      return;
+    }
+    setIsSearchingUsers(true);
+    try {
+      const response = await api.get<{ success: boolean; data?: SmartGroupUser[] }>(
+        "/api/group/smart/users",
+        { params: { keyword } },
+      );
+      setUserSearchResults(response.data.data || []);
+    } catch {
+      setUserSearchResults([]);
+    } finally {
+      setIsSearchingUsers(false);
+    }
+  };
+
+  const addUser = (index: number, user: SmartGroupUser) => {
+    const row = rows[index];
+    if (!row || row.user_ids.includes(user.id)) return;
+    setUserDetails((current) => ({ ...current, [user.id]: user }));
+    updateRow(index, { user_ids: [...row.user_ids, user.id] });
+    setUserSearchResults((current) => current.filter((candidate) => candidate.id !== user.id));
   };
 
   return (
@@ -246,6 +323,89 @@ export function SmartGroupsEditor({
                   <span>{t("Request parameter")}</span>
                   <Input value={row.parameter} placeholder="resolution" onChange={(event) => updateRow(index, { parameter: event.target.value })} />
                 </label>
+              </div>
+              <div className="space-y-3 rounded-md border p-3">
+                <label className="flex items-start gap-3 text-sm">
+                  <Checkbox
+                    checked={row.user_selectable}
+                    onCheckedChange={(checked) => updateRow(index, { user_selectable: checked === true })}
+                  />
+                  <span className="space-y-1">
+                    <span className="block font-medium">{t("User selectable")}</span>
+                    <span className="text-muted-foreground block text-xs">
+                      {row.user_selectable
+                        ? t("All users can select this smart group.")
+                        : t("Only assigned users can select this smart group.")}
+                    </span>
+                  </span>
+                </label>
+                  <div className="space-y-2 border-t pt-3">
+                    <label className="block space-y-1 text-sm">
+                      <span>{t("Assigned users")}</span>
+                      <span className="text-muted-foreground block text-xs">
+                        {row.user_selectable
+                          ? t("Assigned members can use protected pricing groups routed by this smart group.")
+                          : t("Search by user ID, username, or display name, then add users to this smart group.")}
+                      </span>
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={userSearch}
+                        onChange={(event) => setUserSearch(event.target.value)}
+                        onKeyDown={(event) => event.key === "Enter" && void searchUsers()}
+                        placeholder={t("Search users to add")}
+                      />
+                      <Button type="button" variant="outline" onClick={() => void searchUsers()} disabled={isSearchingUsers}>
+                        {isSearchingUsers ? t("Searching...") : t("Search")}
+                      </Button>
+                    </div>
+                    {userSearchResults.length > 0 && (
+                      <div className="max-h-48 overflow-auto rounded-md border">
+                        {userSearchResults.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            className="hover:bg-muted flex w-full items-center justify-between gap-3 border-b p-2 text-left text-sm last:border-0"
+                            disabled={row.user_ids.includes(user.id)}
+                            onClick={() => addUser(index, user)}
+                          >
+                            <span className="min-w-0 truncate">
+                              {user.display_name || user.username} ({user.username}, #{user.id})
+                            </span>
+                            <span className="text-muted-foreground shrink-0">
+                              {row.user_ids.includes(user.id) ? t("Added") : t("Add")}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {row.user_ids.length > 0 ? (
+                      <div className="divide-y rounded-md border">
+                        {row.user_ids.map((userId) => {
+                          const user = userDetails[userId];
+                          return (
+                            <div key={userId} className="flex items-center justify-between gap-3 p-2 text-sm">
+                              <span className="min-w-0 truncate">
+                                {user
+                                  ? `${user.display_name || user.username} (${user.username}, #${user.id})`
+                                  : `#${userId}`}
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => updateRow(index, { user_ids: row.user_ids.filter((id) => id !== userId) })}
+                              >
+                                {t("Remove")}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">{t("No users assigned.")}</p>
+                    )}
+                  </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">

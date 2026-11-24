@@ -66,6 +66,7 @@ export const userSchema = z.object({
     .optional(),
   restricted_public_groups: z.array(z.string()).optional(),
   authorized_groups: z.array(z.string()).optional(),
+  smart_group_pricing_groups: z.array(z.string()).optional(),
 })
 export type User = z.infer<typeof userSchema>
 

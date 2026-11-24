@@ -473,11 +473,11 @@ func TokenAuth() func(c *gin.Context) {
 				userGroup = tokenGroup
 			} else {
 				// check common.UserUsableGroups[userGroup]
-				if _, ok := service.GetUserUsableGroupsWithRestrictions(userGroup, userCache.GetSetting().RestrictedPublicGroups)[tokenGroup]; !ok {
+				if _, ok := service.GetUserUsableGroupsWithSmartGroups(userGroup, userCache.GetSetting().RestrictedPublicGroups, userCache.GetSetting().SmartGroupPricingGroups)[tokenGroup]; !ok {
 					abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
 					return
 				}
-				if !service.UserCanUseGroup(userGroup, userCache.GetSetting().RestrictedPublicGroups, userCache.GetSetting().AuthorizedGroups, tokenGroup) {
+				if !service.UserCanUseGroupWithSmartGroups(userGroup, userCache.GetSetting().RestrictedPublicGroups, userCache.GetSetting().AuthorizedGroups, userCache.GetSetting().SmartGroupPricingGroups, tokenGroup) {
 					abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("No permission to use group %s; administrator authorization is required", tokenGroup))
 					return
 				}

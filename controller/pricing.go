@@ -20,7 +20,8 @@ func GetPricingModel(c *gin.Context) {
 		}
 		if userId := c.GetInt("id"); userId > 0 {
 			if user, err := model.GetUserCache(userId); err == nil {
-				usable := service.GetUserUsableGroupsWithRestrictions(user.Group, user.GetSetting().RestrictedPublicGroups)
+				userSetting := user.GetSetting()
+				usable := service.GetUserUsableGroupsWithSmartGroups(user.Group, userSetting.RestrictedPublicGroups, userSetting.SmartGroupPricingGroups)
 				visible := make([]string, 0, len(item.EnableGroup))
 				for _, g := range item.EnableGroup {
 					if g == "all" { for group := range usable { visible = append(visible, group) }; break }
@@ -84,9 +85,10 @@ func GetPricing(c *gin.Context) {
 		user, err := model.GetUserCache(userId.(int))
 		if err == nil {
 			group = user.Group
-			restricted = user.GetSetting().RestrictedPublicGroups
-			usableGroup = service.GetUserUsableGroupsWithRestrictions(group, restricted)
-			for authorizedGroup := range service.GetUserAuthorizedGroups(user.Group, user.GetSetting().AuthorizedGroups) {
+			userSetting := user.GetSetting()
+			restricted = userSetting.RestrictedPublicGroups
+			usableGroup = service.GetUserUsableGroupsWithSmartGroups(group, restricted, userSetting.SmartGroupPricingGroups)
+			for authorizedGroup := range service.GetUserAuthorizedGroups(user.Group, append(userSetting.AuthorizedGroups, userSetting.SmartGroupPricingGroups...)) {
 				authorizedGroups[authorizedGroup] = true
 			}
 			usableGroupResolved = true

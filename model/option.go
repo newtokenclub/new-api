@@ -201,6 +201,11 @@ func InitOptionMap() {
 
 	common.OptionMapRWMutex.Unlock()
 	loadOptionsFromDatabase()
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		return syncSmartGroupUserPermissions(tx, GetSmartGroups())
+	}); err != nil {
+		common.SysLog("failed to sync smart group user permissions: " + err.Error())
+	}
 }
 
 func loadOptionsFromDatabase() {

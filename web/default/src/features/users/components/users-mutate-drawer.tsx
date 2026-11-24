@@ -152,6 +152,7 @@ export function UsersMutateDrawer({
     number | undefined
   >()
   const [additionalSalesSaving, setAdditionalSalesSaving] = useState(false)
+  const [smartGroupPricingGroups, setSmartGroupPricingGroups] = useState<string[]>([])
 
   // Fetch groups
   const { data: groupsData } = useQuery({
@@ -193,11 +194,13 @@ export function UsersMutateDrawer({
       void getUser(currentRow.id).then((result) => {
         if (result.success && result.data) {
           form.reset(transformUserToFormDefaults(result.data))
+          setSmartGroupPricingGroups(result.data.smart_group_pricing_groups || [])
         }
       })
     } else if (open && !isUpdate) {
       // For create, reset to defaults
       form.reset(USER_FORM_DEFAULT_VALUES)
+      setSmartGroupPricingGroups([])
     }
   }, [open, isUpdate, currentRow, form])
 
@@ -786,6 +789,19 @@ export function UsersMutateDrawer({
                       </FormItem>
                     )}
                   />
+                  {smartGroupPricingGroups.length > 0 && (
+                    <div className='space-y-1'>
+                      <Label>{t('Smart group pricing groups')}</Label>
+                      <FormDescription>
+                        {t('These groups are assigned through smart group membership and are managed in smart group settings.')}
+                      </FormDescription>
+                      <div className='flex flex-wrap gap-2'>
+                        {smartGroupPricingGroups.map((group) => (
+                          <span key={group} className='rounded border px-2 py-1 text-sm'>{group}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <FormField
                     control={form.control}

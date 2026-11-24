@@ -78,10 +78,13 @@ func RenameGroup(oldName, newName string) error {
 			userSetting := user.GetSetting()
 			originalRestricted := append([]string(nil), userSetting.RestrictedPublicGroups...)
 			originalAuthorized := append([]string(nil), userSetting.AuthorizedGroups...)
+			originalSmartGroupGroups := append([]string(nil), userSetting.SmartGroupPricingGroups...)
 			userSetting.RestrictedPublicGroups, _ = renameGroupSlice(userSetting.RestrictedPublicGroups, oldName, newName)
 			userSetting.AuthorizedGroups, _ = renameGroupSlice(userSetting.AuthorizedGroups, oldName, newName)
+			userSetting.SmartGroupPricingGroups, _ = renameGroupSlice(userSetting.SmartGroupPricingGroups, oldName, newName)
 			settingChanged := !equalStringSlices(originalRestricted, userSetting.RestrictedPublicGroups) ||
-				!equalStringSlices(originalAuthorized, userSetting.AuthorizedGroups)
+				!equalStringSlices(originalAuthorized, userSetting.AuthorizedGroups) ||
+				!equalStringSlices(originalSmartGroupGroups, userSetting.SmartGroupPricingGroups)
 			if groupChanged || settingChanged {
 				updates := map[string]interface{}{}
 				if groupChanged {

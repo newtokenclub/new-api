@@ -57,6 +57,7 @@ type User struct {
 	AdminPermissions map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 	RestrictedPublicGroups []string            `json:"restricted_public_groups,omitempty" gorm:"-:all"`
 	AuthorizedGroups       []string            `json:"authorized_groups,omitempty" gorm:"-:all"`
+	SmartGroupPricingGroups []string           `json:"smart_group_pricing_groups,omitempty" gorm:"-:all"`
 }
 
 func (user *User) ToBaseUser() *UserBase {

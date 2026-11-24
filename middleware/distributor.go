@@ -55,7 +55,7 @@ func Distribute() func(c *gin.Context) {
 				return
 			}
 			user, userErr := model.GetUserCache(c.GetInt("id"))
-			if userErr != nil || !service.UserCanUseGroup(user.Group, user.GetSetting().RestrictedPublicGroups, user.GetSetting().AuthorizedGroups, pricingGroup) {
+			if userErr != nil || !service.UserCanUseGroupWithSmartGroups(user.Group, user.GetSetting().RestrictedPublicGroups, user.GetSetting().AuthorizedGroups, user.GetSetting().SmartGroupPricingGroups, pricingGroup) {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("No permission to use pricing group %s; administrator authorization may be required", pricingGroup))
 				return
 			}
@@ -128,7 +128,8 @@ func Distribute() func(c *gin.Context) {
 						}
 						groupSelectable := service.GroupInUserUsableGroups(userGroup, playgroundRequest.Group)
 						if userErr == nil {
-							_, groupSelectable = service.GetUserUsableGroupsWithRestrictions(user.Group, user.GetSetting().RestrictedPublicGroups)[playgroundRequest.Group]
+							userSettings := user.GetSetting()
+							_, groupSelectable = service.GetUserUsableGroupsWithSmartGroups(user.Group, userSettings.RestrictedPublicGroups, userSettings.SmartGroupPricingGroups)[playgroundRequest.Group]
 						}
 						if !groupSelectable && playgroundRequest.Group != usingGroup {
 							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
@@ -137,7 +138,7 @@ func Distribute() func(c *gin.Context) {
 						// A protected group may be selectable when creating a key, but it
 						// must still be explicitly authorized before it can process a request.
 						if userErr == nil &&
-							!service.UserCanUseGroup(user.Group, user.GetSetting().RestrictedPublicGroups, user.GetSetting().AuthorizedGroups, playgroundRequest.Group) {
+							!service.UserCanUseGroupWithSmartGroups(user.Group, user.GetSetting().RestrictedPublicGroups, user.GetSetting().AuthorizedGroups, user.GetSetting().SmartGroupPricingGroups, playgroundRequest.Group) {
 							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
 							return
 						}

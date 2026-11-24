@@ -173,14 +173,20 @@ func AddToken(c *gin.Context) {
 		return
 	}
 	if token.Group != "" {
-		if user, e := model.GetUserCache(c.GetInt("id")); e == nil {
-			userSettings := user.GetSetting()
-			if model.IsSmartGroup(token.Group) {
-				// Access is checked against the resolved pricing group per request.
-			} else if _, ok := service.GetUserUsableGroupsWithRestrictions(user.Group, userSettings.RestrictedPublicGroups)[token.Group]; !ok {
-				common.ApiError(c, fmt.Errorf("no permission to use group %s", token.Group))
+		user, e := model.GetUserCache(c.GetInt("id"))
+		if e != nil {
+			common.ApiError(c, e)
+			return
+		}
+		userSettings := user.GetSetting()
+		if model.IsSmartGroup(token.Group) {
+			if !model.UserCanSelectSmartGroup(user.Id, token.Group) {
+				common.ApiError(c, fmt.Errorf("no permission to use smart group %s", token.Group))
 				return
 			}
+		} else if _, ok := service.GetUserUsableGroupsWithSmartGroups(user.Group, userSettings.RestrictedPublicGroups, userSettings.SmartGroupPricingGroups)[token.Group]; !ok {
+			common.ApiError(c, fmt.Errorf("no permission to use group %s", token.Group))
+			return
 		}
 	}
 	if len(token.Name) > 50 {
@@ -268,15 +274,26 @@ func UpdateToken(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	cleanToken, err := model.GetTokenByIds(token.Id, userId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	if token.Group != "" {
-		if user, e := model.GetUserCache(userId); e == nil {
-			userSettings := user.GetSetting()
-			if model.IsSmartGroup(token.Group) {
-				// Access is checked against the resolved pricing group per request.
-			} else if _, ok := service.GetUserUsableGroupsWithRestrictions(user.Group, userSettings.RestrictedPublicGroups)[token.Group]; !ok {
-				common.ApiError(c, fmt.Errorf("no permission to use group %s", token.Group))
+		user, e := model.GetUserCache(userId)
+		if e != nil {
+			common.ApiError(c, e)
+			return
+		}
+		userSettings := user.GetSetting()
+		if model.IsSmartGroup(token.Group) {
+			if token.Group != cleanToken.Group && !model.UserCanSelectSmartGroup(user.Id, token.Group) {
+				common.ApiError(c, fmt.Errorf("no permission to use smart group %s", token.Group))
 				return
 			}
+		} else if _, ok := service.GetUserUsableGroupsWithSmartGroups(user.Group, userSettings.RestrictedPublicGroups, userSettings.SmartGroupPricingGroups)[token.Group]; !ok {
+			common.ApiError(c, fmt.Errorf("no permission to use group %s", token.Group))
+			return
 		}
 	}
 	if len(token.Name) > 50 {
@@ -293,11 +310,6 @@ func UpdateToken(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgTokenQuotaExceedMax, map[string]any{"Max": maxQuotaValue})
 			return
 		}
-	}
-	cleanToken, err := model.GetTokenByIds(token.Id, userId)
-	if err != nil {
-		common.ApiError(c, err)
-		return
 	}
 	if token.Status == common.TokenStatusEnabled {
 		if cleanToken.Status == common.TokenStatusExpired && cleanToken.ExpiredTime <= common.GetTimestamp() && cleanToken.ExpiredTime != -1 {

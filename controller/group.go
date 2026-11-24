@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -80,8 +81,12 @@ func GetUserGroups(c *gin.Context) {
 		restricted = userSettings.RestrictedPublicGroups
 		additionalAuthorizedGroups = userSettings.AuthorizedGroups
 	}
-	userUsableGroups := service.GetUserUsableGroupsWithRestrictions(userGroup, restricted)
-	authorized := service.GetUserAuthorizedGroups(userGroup, additionalAuthorizedGroups)
+	var smartGroupPricingGroups []string
+	if user, err := model.GetUserCache(userId); err == nil {
+		smartGroupPricingGroups = user.GetSetting().SmartGroupPricingGroups
+	}
+	userUsableGroups := service.GetUserUsableGroupsWithSmartGroups(userGroup, restricted, smartGroupPricingGroups)
+	authorized := service.GetUserAuthorizedGroups(userGroup, append(additionalAuthorizedGroups, smartGroupPricingGroups...))
 	authorizationRequiredGroups := setting.GetAuthorizationRequiredGroupsCopy()
 	for groupName, _ := range ratio_setting.GetGroupRatioCopy() {
 		if desc, ok := userUsableGroups[groupName]; ok {
@@ -96,12 +101,16 @@ func GetUserGroups(c *gin.Context) {
 	}
 	if c.Query("include_smart") == "true" {
 		for groupName, group := range model.GetSmartGroups() {
+			if !group.CanBeSelectedBy(userId) {
+				continue
+			}
 			usableGroups[groupName] = map[string]interface{}{
 				"type":          "smart",
 				"desc":          group.Description,
 				"parameter":     group.Parameter,
 				"routes":        group.Routes,
 				"default_group": group.DefaultGroup,
+				"user_selectable": group.IsUserSelectable(),
 			}
 		}
 	}
@@ -116,4 +125,51 @@ func GetUserGroups(c *gin.Context) {
 		"message": "",
 		"data":    usableGroups,
 	})
+}
+
+func SearchSmartGroupUsers(c *gin.Context) {
+	if c.GetInt("role") != common.RoleRootUser {
+		common.ApiErrorMsg(c, "root permission required")
+		return
+	}
+	type userOption struct {
+		Id          int    `json:"id"`
+		Username    string `json:"username"`
+		DisplayName string `json:"display_name"`
+	}
+	query := model.DB.Model(&model.User{}).Select("id, username, display_name").Where("deleted_at IS NULL")
+	if idsValue := strings.TrimSpace(c.Query("ids")); idsValue != "" {
+		ids := make([]int, 0)
+		for _, rawID := range strings.Split(idsValue, ",") {
+			id, err := strconv.Atoi(strings.TrimSpace(rawID))
+			if err != nil || id <= 0 {
+				common.ApiErrorMsg(c, "invalid user ids")
+				return
+			}
+			ids = append(ids, id)
+		}
+		if len(ids) > 200 {
+			common.ApiErrorMsg(c, "too many user ids")
+			return
+		}
+		query = query.Where("id IN ?", ids)
+	} else {
+		keyword := strings.TrimSpace(c.Query("keyword"))
+		if keyword == "" {
+			c.JSON(http.StatusOK, gin.H{"success": true, "data": []userOption{}})
+			return
+		}
+		like := "%" + keyword + "%"
+		if id, err := strconv.Atoi(keyword); err == nil {
+			query = query.Where("id = ? OR username LIKE ? OR display_name LIKE ?", id, like, like)
+		} else {
+			query = query.Where("username LIKE ? OR display_name LIKE ?", like, like)
+		}
+	}
+	var users []userOption
+	if err := query.Order("id DESC").Limit(200).Find(&users).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": users})
 }

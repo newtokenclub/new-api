@@ -370,6 +370,7 @@ func GetUser(c *gin.Context) {
 	user.AdminPermissions = authz.Capabilities(user.Id, user.Role)
 	user.RestrictedPublicGroups = user.GetSetting().RestrictedPublicGroups
 	user.AuthorizedGroups = user.GetSetting().AuthorizedGroups
+	user.SmartGroupPricingGroups = user.GetSetting().SmartGroupPricingGroups
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -789,7 +790,8 @@ func GetUserModels(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	groups := service.GetUserUsableGroupsWithRestrictions(user.Group, user.GetSetting().RestrictedPublicGroups)
+	userSetting := user.GetSetting()
+	groups := service.GetUserUsableGroupsWithSmartGroups(user.Group, userSetting.RestrictedPublicGroups, userSetting.SmartGroupPricingGroups)
 	group := c.Query("group")
 	if group != "" {
 		if _, ok := groups[group]; !ok {
@@ -1620,6 +1622,7 @@ func UpdateUserSetting(c *gin.Context) {
 
 	// 构建设置
 	settings := dto.UserSetting{
+		SmartGroupPricingGroups:         existingSettings.SmartGroupPricingGroups,
 		NotifyType:                       req.QuotaWarningType,
 		QuotaWarningThreshold:            req.QuotaWarningThreshold,
 		UpstreamModelUpdateNotifyEnabled: upstreamModelUpdateNotifyEnabled,

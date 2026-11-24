@@ -58,6 +58,17 @@ func GetUserUsableGroupsWithRestrictions(userGroup string, restricted []string) 
 	return groupsCopy
 }
 
+func GetUserUsableGroupsWithSmartGroups(userGroup string, restricted, smartGroupGroups []string) map[string]string {
+	groups := GetUserUsableGroupsWithRestrictions(userGroup, restricted)
+	pricingGroups := ratio_setting.GetGroupRatioCopy()
+	for _, group := range smartGroupGroups {
+		if _, exists := pricingGroups[group]; exists {
+			groups[group] = "Smart group assignment"
+		}
+	}
+	return groups
+}
+
 // GetUserAuthorizedGroups returns user group permissions augmented with groups
 // assigned to the user by an administrator.
 func GetUserAuthorizedGroups(userGroup string, additionalGroups []string) map[string]struct{} {
@@ -81,6 +92,17 @@ func UserCanUseGroup(userGroup string, restricted, additionalGroups []string, ta
 		return true
 	}
 	_, authorized := GetUserAuthorizedGroups(userGroup, additionalGroups)[targetGroup]
+	return authorized
+}
+
+func UserCanUseGroupWithSmartGroups(userGroup string, restricted, additionalGroups, smartGroupGroups []string, targetGroup string) bool {
+	if _, usable := GetUserUsableGroupsWithSmartGroups(userGroup, restricted, smartGroupGroups)[targetGroup]; !usable {
+		return false
+	}
+	if !setting.GetAuthorizationRequiredGroupsCopy()[targetGroup] {
+		return true
+	}
+	_, authorized := GetUserAuthorizedGroups(userGroup, append(append([]string(nil), additionalGroups...), smartGroupGroups...))[targetGroup]
 	return authorized
 }
 

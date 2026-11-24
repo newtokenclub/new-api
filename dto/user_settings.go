@@ -3,6 +3,7 @@ package dto
 type UserSetting struct {
 	RestrictedPublicGroups []string `json:"restricted_public_groups,omitempty"`
 	AuthorizedGroups       []string `json:"authorized_groups,omitempty"`
+	SmartGroupPricingGroups []string `json:"smart_group_pricing_groups,omitempty"`
 	NotifyType                       string  `json:"notify_type,omitempty"`                          // QuotaWarningType 额度预警类型
 	QuotaWarningThreshold            float64 `json:"quota_warning_threshold,omitempty"`              // QuotaWarningThreshold 额度预警阈值
 	WebhookUrl                       string  `json:"webhook_url,omitempty"`                          // WebhookUrl webhook地址

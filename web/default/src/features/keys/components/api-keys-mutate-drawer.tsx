@@ -129,6 +129,17 @@ export function ApiKeysMutateDrawer({
       type: info.type,
     })
   )
+  if (
+    isUpdate &&
+    currentRow?.group &&
+    !groups.some((group) => group.value === currentRow.group)
+  ) {
+    groups.push({
+      value: currentRow.group,
+      label: currentRow.group,
+      desc: t('Current group on this API key'),
+    })
+  }
   const backendHasAuto = groups.some((g) => g.value === 'auto')
   const schema = getApiKeyFormSchema(t)
 
