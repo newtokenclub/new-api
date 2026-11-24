@@ -1,4 +1,4 @@
-import { Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -78,6 +78,7 @@ export function SmartGroupsEditor({
   const [rows, setRows] = useState(() => parseGroups(value));
   const [sourceValue, setSourceValue] = useState(value);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedUserAssignmentsFor, setExpandedUserAssignmentsFor] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [userSearchResults, setUserSearchResults] = useState<SmartGroupUser[]>([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
@@ -325,23 +326,42 @@ export function SmartGroupsEditor({
                 </label>
               </div>
               <div className="space-y-3 rounded-md border p-3">
-                <label className="flex items-start gap-3 text-sm">
-                  <Checkbox
-                    checked={row.user_selectable}
-                    onCheckedChange={(checked) => updateRow(index, { user_selectable: checked === true })}
-                  />
-                  <span className="space-y-1">
-                    <span className="block font-medium">{t("User selectable")}</span>
-                    <span className="text-muted-foreground block text-xs">
-                      {row.user_selectable
-                        ? t("All users can select this smart group.")
-                        : t("Only assigned users can select this smart group.")}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label className="flex items-start gap-3 text-sm">
+                    <Checkbox
+                      checked={row.user_selectable}
+                      onCheckedChange={(checked) => {
+                        const userSelectable = checked === true;
+                        updateRow(index, { user_selectable: userSelectable });
+                        if (!userSelectable) setExpandedUserAssignmentsFor(null);
+                      }}
+                    />
+                    <span className="space-y-1">
+                      <span className="block font-medium">{t("User selectable")}</span>
+                      <span className="text-muted-foreground block text-xs">
+                        {row.user_selectable
+                          ? t("All users can select this smart group.")
+                          : t("Only assigned users can select this smart group.")}
+                      </span>
                     </span>
-                  </span>
-                </label>
+                  </label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-expanded={expandedUserAssignmentsFor === row.id}
+                    onClick={() => setExpandedUserAssignmentsFor(expandedUserAssignmentsFor === row.id ? null : row.id)}
+                  >
+                    {t("Assigned users")}
+                    <span className="bg-muted ml-1 rounded px-1.5 py-0.5 text-xs">{row.user_ids.length}</span>
+                    {expandedUserAssignmentsFor === row.id
+                      ? <ChevronUp className="ml-1 size-4" />
+                      : <ChevronDown className="ml-1 size-4" />}
+                  </Button>
+                </div>
+                {expandedUserAssignmentsFor === row.id && (
                   <div className="space-y-2 border-t pt-3">
                     <label className="block space-y-1 text-sm">
-                      <span>{t("Assigned users")}</span>
                       <span className="text-muted-foreground block text-xs">
                         {row.user_selectable
                           ? t("Assigned members can use protected pricing groups routed by this smart group.")
@@ -360,45 +380,46 @@ export function SmartGroupsEditor({
                       </Button>
                     </div>
                     {userSearchResults.length > 0 && (
-                      <div className="max-h-48 overflow-auto rounded-md border">
+                      <div className="flex max-h-48 flex-wrap gap-2 overflow-auto rounded-md border p-2">
                         {userSearchResults.map((user) => (
                           <button
                             key={user.id}
                             type="button"
-                            className="hover:bg-muted flex w-full items-center justify-between gap-3 border-b p-2 text-left text-sm last:border-0"
+                            className="hover:bg-muted inline-flex max-w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs"
                             disabled={row.user_ids.includes(user.id)}
                             onClick={() => addUser(index, user)}
                           >
-                            <span className="min-w-0 truncate">
+                            <span className="max-w-64 truncate">
                               {user.display_name || user.username} ({user.username}, #{user.id})
                             </span>
-                            <span className="text-muted-foreground shrink-0">
-                              {row.user_ids.includes(user.id) ? t("Added") : t("Add")}
-                            </span>
+                            <span className="text-muted-foreground shrink-0">{t("Add")}</span>
                           </button>
                         ))}
                       </div>
                     )}
                     {row.user_ids.length > 0 ? (
-                      <div className="divide-y rounded-md border">
+                      <div className="flex flex-wrap gap-2">
                         {row.user_ids.map((userId) => {
                           const user = userDetails[userId];
                           return (
-                            <div key={userId} className="flex items-center justify-between gap-3 p-2 text-sm">
-                              <span className="min-w-0 truncate">
+                            <span key={userId} className="inline-flex max-w-full items-center gap-1 rounded border px-2 py-1 text-xs">
+                              <span className="max-w-64 truncate">
                                 {user
                                   ? `${user.display_name || user.username} (${user.username}, #${user.id})`
                                   : `#${userId}`}
                               </span>
                               <Button
                                 type="button"
-                                size="sm"
+                                size="icon"
                                 variant="ghost"
+                                className="size-6 shrink-0"
+                                title={t("Remove")}
+                                aria-label={t("Remove")}
                                 onClick={() => updateRow(index, { user_ids: row.user_ids.filter((id) => id !== userId) })}
                               >
-                                {t("Remove")}
+                                <Trash2 className="size-3" />
                               </Button>
-                            </div>
+                            </span>
                           );
                         })}
                       </div>
@@ -406,6 +427,7 @@ export function SmartGroupsEditor({
                       <p className="text-muted-foreground text-sm">{t("No users assigned.")}</p>
                     )}
                   </div>
+                )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
