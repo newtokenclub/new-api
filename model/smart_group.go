@@ -19,12 +19,10 @@ type SmartGroupRoute struct {
 }
 
 type SmartGroup struct {
-	Description          string            `json:"description"`
-	Parameter            string            `json:"parameter"`
-	Routes               []SmartGroupRoute `json:"routes"`
-	DefaultGroup         string            `json:"default_group"`
-	UserSelectable       bool              `json:"user_selectable"`
-	AuthorizationRequired bool             `json:"authorization_required"`
+	Description  string            `json:"description"`
+	Parameter    string            `json:"parameter"`
+	Routes       []SmartGroupRoute `json:"routes"`
+	DefaultGroup string            `json:"default_group"`
 }
 
 type SmartGroupMap map[string]SmartGroup

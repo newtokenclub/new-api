@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Code2, Eye, HelpCircle } from "lucide-react";
 import { memo, useCallback, useState } from "react";
-import { type UseFormReturn } from "react-hook-form";
+import type { UseFormReturn } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -186,22 +186,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="SmartGroups"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("Smart groups")}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={8} {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    {t("JSON object for request-parameter routing to pricing groups.")}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
         ) : (
           <SettingsForm onSubmit={form.handleSubmit(onSave)}>

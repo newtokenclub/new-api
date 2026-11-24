@@ -102,8 +102,6 @@ func GetUserGroups(c *gin.Context) {
 				"parameter":     group.Parameter,
 				"routes":        group.Routes,
 				"default_group": group.DefaultGroup,
-				"user_selectable": group.UserSelectable,
-				"authorization_required": group.AuthorizationRequired,
 			}
 		}
 	}
