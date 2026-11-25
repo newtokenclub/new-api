@@ -23,11 +23,19 @@ import {
   BILLING_DEFAULT_SECTION,
   BILLING_SECTION_IDS,
 } from '@/features/system-settings/billing/section-registry.tsx'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute(
   '/_authenticated/system-settings/billing/$section'
 )({
   beforeLoad: ({ params }) => {
+    if (
+      params.section === 'group-pricing' &&
+      useAuthStore.getState().auth.user?.role !== ROLE.SUPER_ADMIN
+    ) {
+      throw redirect({ to: '/403' })
+    }
     const validSections = BILLING_SECTION_IDS as unknown as string[]
     if (!validSections.includes(params.section)) {
       throw redirect({

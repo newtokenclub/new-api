@@ -50,7 +50,27 @@ func TestInitSeedsBuiltInRolesAndPoliciesOnce(t *testing.T) {
 	assert.True(t, Can(2, common.RoleAdminUser, ChannelOperate))
 	assert.True(t, Can(2, common.RoleAdminUser, ChannelWrite))
 	assert.False(t, Can(2, common.RoleAdminUser, ChannelSensitiveWrite))
+	assert.False(t, Can(2, common.RoleAdminUser, SmartGroupManage))
 	assert.False(t, Can(3, common.RoleCommonUser, ChannelRead))
+	assert.True(t, Can(1, common.RoleRootUser, SmartGroupManage))
+}
+
+func TestSmartGroupManagementCanBeGrantedIndependently(t *testing.T) {
+	db := newAuthzTestDB(t)
+	require.NoError(t, Init(db))
+
+	assert.False(t, Can(42, common.RoleAdminUser, SmartGroupManage))
+	require.NoError(t, SetUserPermissions(42, PermissionsMap{
+		ResourceSmartGroup: {ActionManage: true},
+	}))
+	assert.True(t, Can(42, common.RoleAdminUser, SmartGroupManage))
+	assert.False(t, Can(42, common.RoleAdminUser, ChannelSensitiveWrite))
+	assert.False(t, Can(42, common.RoleAdminUser, ChannelRead))
+
+	require.NoError(t, SetUserPermissions(42, PermissionsMap{
+		ResourceSmartGroup: {ActionManage: false},
+	}))
+	assert.False(t, Can(42, common.RoleAdminUser, SmartGroupManage))
 }
 
 func TestInitOnSlaveOnlyLoadsPolicies(t *testing.T) {

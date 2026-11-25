@@ -8,6 +8,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
@@ -128,8 +129,8 @@ func GetUserGroups(c *gin.Context) {
 }
 
 func SearchSmartGroupUsers(c *gin.Context) {
-	if c.GetInt("role") != common.RoleRootUser {
-		common.ApiErrorMsg(c, "root permission required")
+	if !authz.Can(c.GetInt("id"), c.GetInt("role"), authz.SmartGroupManage) {
+		common.ApiErrorMsg(c, "smart group management permission required")
 		return
 	}
 	type userOption struct {

@@ -41,7 +41,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { safeJsonParse } from "../utils/json-parser";
-import { SmartGroupsEditor } from "./smart-groups-editor";
 
 type GroupRatioVisualEditorProps = {
   groupRatio: string;
@@ -50,10 +49,6 @@ type GroupRatioVisualEditorProps = {
   authorizationRequiredGroups: string;
   groupGroupRatio: string;
   autoGroups: string;
-  smartGroups: string;
-  onSaveSmartGroups: () => void;
-  isSaving: boolean;
-  onSmartGroupInvalidChange: (invalid: boolean) => void;
   onChange: (field: string, value: string) => void;
 };
 
@@ -193,10 +188,6 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   authorizationRequiredGroups,
   groupGroupRatio,
   autoGroups,
-  smartGroups,
-  onSaveSmartGroups,
-  isSaving,
-  onSmartGroupInvalidChange,
   onChange,
 }: GroupRatioVisualEditorProps) {
   const { t } = useTranslation();
@@ -439,19 +430,6 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
 
   return (
     <div className="space-y-4">
-      <SmartGroupsEditor
-        value={smartGroups}
-        groupNames={Object.keys(
-          safeJsonParse<Record<string, number>>(groupRatio, {
-            fallback: {},
-            silent: true,
-          }),
-        )}
-        onChange={(value) => onChange("SmartGroups", value)}
-        onInvalidChange={onSmartGroupInvalidChange}
-        onSave={onSaveSmartGroups}
-        isSaving={isSaving}
-      />
       <GroupPricingTable
         groupRatio={groupRatio}
         userUsableGroups={userUsableGroups}

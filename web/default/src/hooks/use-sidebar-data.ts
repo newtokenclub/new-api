@@ -25,6 +25,7 @@ import {
   FlaskConical,
   Key,
   LayoutDashboard,
+  ListTree,
   ListTodo,
   MessageSquare,
   Radio,
@@ -62,6 +63,7 @@ export function useSidebarData(): SidebarData {
   const p2pEnabled = headerNavModules.aitoken !== false
   const scriptsEnabled = headerNavModules.scripts !== false
   const user = useAuthStore((state) => state.auth.user)
+  const isRoot = user?.role === ROLE.SUPER_ADMIN
   const canUseQuotaApplications = hasPermission(
     user,
     'quota_application',
@@ -172,11 +174,24 @@ export function useSidebarData(): SidebarData {
             url: '/models/metadata',
             icon: Box,
           },
-          {
-            title: t('Group Pricing'),
-            url: '/system-settings/billing/group-pricing',
-            icon: SlidersHorizontal,
-          },
+          ...(isRoot || hasPermission(user, 'smart_group', 'manage')
+            ? [
+                {
+                  title: t('Smart groups'),
+                  url: '/smart-groups',
+                  icon: ListTree,
+                },
+              ]
+            : []),
+          ...(isRoot
+            ? [
+                {
+                  title: t('Group Pricing'),
+                  url: '/system-settings/billing/group-pricing',
+                  icon: SlidersHorizontal,
+                },
+              ]
+            : []),
           {
             title: t('Async Task Concurrency'),
             url: '/model-concurrency',

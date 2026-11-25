@@ -70,49 +70,22 @@ type GroupFormValues = {
   AutoGroups: string;
   DefaultUseAutoGroup: boolean;
   GroupSpecialUsableGroup: string;
-  SmartGroups: string;
 };
 
 type GroupRatioFormProps = {
   form: UseFormReturn<GroupFormValues>;
   onSave: (values: GroupFormValues) => Promise<void>;
   isSaving: boolean;
-  pendingGroupRename?: { oldName: string; newName: string };
 };
-
-function renameSmartGroupTargets(
-  value: string,
-  oldName?: string,
-  newName?: string,
-): string {
-  if (!oldName || !newName) return value;
-  try {
-    const groups = JSON.parse(value) as Record<
-      string,
-      { default_group?: string; routes?: Array<{ group: string }> }
-    >;
-    for (const group of Object.values(groups)) {
-      if (group.default_group === oldName) group.default_group = newName;
-      for (const route of group.routes ?? []) {
-        if (route.group === oldName) route.group = newName;
-      }
-    }
-    return JSON.stringify(groups, null, 2);
-  } catch {
-    return value;
-  }
-}
 
 export const GroupRatioForm = memo(function GroupRatioForm({
   form,
   onSave,
   isSaving,
-  pendingGroupRename,
 }: GroupRatioFormProps) {
   const { t } = useTranslation();
   const [editMode, setEditMode] = useState<"visual" | "json">("visual");
   const [guideOpen, setGuideOpen] = useState(false);
-  const [smartGroupInvalid, setSmartGroupInvalid] = useState(false);
 
   const handleFieldChange = useCallback(
     (field: keyof GroupFormValues, value: string) => {
@@ -158,7 +131,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
             type="button"
             size="sm"
             onClick={form.handleSubmit(onSave)}
-            disabled={isSaving || (editMode === "visual" && smartGroupInvalid)}
+            disabled={isSaving}
           >
             {isSaving ? t("Saving...") : t("Save group ratios")}
           </Button>
@@ -174,14 +147,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               )}
               groupGroupRatio={form.watch("GroupGroupRatio")}
               autoGroups={form.watch("AutoGroups")}
-              smartGroups={renameSmartGroupTargets(
-                form.watch("SmartGroups"),
-                pendingGroupRename?.oldName,
-                pendingGroupRename?.newName,
-              )}
-              onSaveSmartGroups={() => void form.handleSubmit(onSave)()}
-              isSaving={isSaving}
-              onSmartGroupInvalidChange={setSmartGroupInvalid}
               onChange={(field, value) =>
                 handleFieldChange(field as keyof GroupFormValues, value)
               }
@@ -232,25 +197,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                   <FormDescription>
                     {t(
                       "JSON map of group → ratio applied when the user selects the group explicitly.",
-                    )}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="SmartGroups"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("Smart groups")}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={8} {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    {t(
-                      "JSON object for request-parameter routing to pricing groups.",
                     )}
                   </FormDescription>
                   <FormMessage />

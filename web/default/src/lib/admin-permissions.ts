@@ -9,6 +9,7 @@ export const ADMIN_PERMISSION_RESOURCES = {
   CHANNEL: 'channel',
   QUOTA_APPLICATION: 'quota_application',
   TASK_LOG: 'task_log',
+  SMART_GROUP: 'smart_group',
 } as const
 
 export const ADMIN_PERMISSION_ACTIONS = {
@@ -19,6 +20,7 @@ export const ADMIN_PERMISSION_ACTIONS = {
   SECRET_VIEW: 'secret_view',
   APPLY: 'apply',
   VIEW_ALL: 'view_all',
+  MANAGE: 'manage',
 } as const
 
 // The role whose baseline grants are used as defaults in the permission editor.
@@ -69,11 +71,10 @@ export function hasPermission(
 }
 
 /**
- * Returns true when an admin has no administrator-module capability beyond
- * quota applications. Task-log support is a console capability, so granting it
- * must not expose unrelated administrator navigation.
+ * Returns true when an admin only has delegated quota, task-log, or smart-group
+ * capabilities and should not see unrelated administrator navigation.
  */
-export function isQuotaApplicationOnlyAdmin(
+export function isDelegatedAdminWithLimitedNavigation(
   user: AuthUser | null | undefined
 ): boolean {
   if (!user || user.role < ROLE.ADMIN || user.role === ROLE.SUPER_ADMIN) {
@@ -81,17 +82,22 @@ export function isQuotaApplicationOnlyAdmin(
   }
 
   const permissions = user.permissions?.admin_permissions
-  if (!permissions || !hasPermission(user, 'quota_application', 'apply')) {
-    return false
-  }
+  if (!permissions) return false
 
-  return !Object.entries(permissions).some(([resource, actions]) =>
-    Object.entries(actions).some(
-      ([action, allowed]) =>
-        allowed === true &&
-        !(resource === 'quota_application' && action === 'apply') &&
-        !(resource === 'task_log' && action === 'view_all')
-    )
+  const allowedPermissions = Object.entries(permissions).flatMap(
+    ([resource, actions]) =>
+      Object.entries(actions)
+        .filter(([, allowed]) => allowed)
+        .map(([action]) => `${resource}:${action}`)
+  )
+  const delegatedPermissions = new Set([
+    'quota_application:apply',
+    'task_log:view_all',
+    'smart_group:manage',
+  ])
+  return (
+    allowedPermissions.length > 0 &&
+    allowedPermissions.every((permission) => delegatedPermissions.has(permission))
   )
 }
 

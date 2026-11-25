@@ -22,7 +22,10 @@ import { useTranslation } from 'react-i18next'
 
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
 import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
-import { isQuotaApplicationOnlyAdmin } from '@/lib/admin-permissions'
+import {
+  hasPermission,
+  isDelegatedAdminWithLimitedNavigation,
+} from '@/lib/admin-permissions'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -63,11 +66,16 @@ export function useSidebarView(): ResolvedSidebarView {
           (item) => item.requiredRole === undefined || role >= item.requiredRole
         )
 
-        // A delegated admin with only quota-application permission should not
-        // see unrelated administrator modules that will reject them with 403.
-        if (group.id === 'admin' && isQuotaApplicationOnlyAdmin(user)) {
+        // Delegated admins should only see the admin pages their narrow grants
+        // actually expose.
+        if (group.id === 'admin' && isDelegatedAdminWithLimitedNavigation(user)) {
           items = items.filter(
-            (item) => 'url' in item && item.url === '/quota-applications'
+            (item) =>
+              'url' in item &&
+              ((item.url === '/quota-applications' &&
+                hasPermission(user, 'quota_application', 'apply')) ||
+                (item.url === '/smart-groups' &&
+                  hasPermission(user, 'smart_group', 'manage')))
           )
         }
 

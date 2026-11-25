@@ -63,6 +63,7 @@ import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedBuyAitokenIndexRouteImport } from './routes/_authenticated/buy-aitoken/index'
 import { Route as AuthenticatedAffiliateIndexRouteImport } from './routes/_authenticated/affiliate/index'
 import { Route as AuthenticatedAffiliateTasksUserIdRouteImport } from './routes/_authenticated/affiliate/tasks/$userId'
+import { Route as AuthenticatedSmartGroupsIndexRouteImport } from './routes/_authenticated/smart-groups/index'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -374,6 +375,12 @@ const AuthenticatedAffiliateTasksUserIdRoute =
     path: '/affiliate/tasks/$userId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSmartGroupsIndexRoute =
+  AuthenticatedSmartGroupsIndexRouteImport.update({
+    id: '/smart-groups/',
+    path: '/smart-groups/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsageLogsSectionRoute =
   AuthenticatedUsageLogsSectionRouteImport.update({
     id: '/usage-logs/$section',
@@ -531,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/affiliate/tasks/$userId': typeof AuthenticatedAffiliateTasksUserIdRoute
+  '/smart-groups/': typeof AuthenticatedSmartGroupsIndexRoute
   '/buy-aitoken/': typeof AuthenticatedBuyAitokenIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -604,6 +612,7 @@ export interface FileRoutesByTo {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/affiliate': typeof AuthenticatedAffiliateIndexRoute
   '/affiliate/tasks/$userId': typeof AuthenticatedAffiliateTasksUserIdRoute
+  '/smart-groups': typeof AuthenticatedSmartGroupsIndexRoute
   '/buy-aitoken': typeof AuthenticatedBuyAitokenIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -681,6 +690,7 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/affiliate/': typeof AuthenticatedAffiliateIndexRoute
   '/_authenticated/affiliate/tasks/$userId': typeof AuthenticatedAffiliateTasksUserIdRoute
+  '/_authenticated/smart-groups/': typeof AuthenticatedSmartGroupsIndexRoute
   '/_authenticated/buy-aitoken/': typeof AuthenticatedBuyAitokenIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -757,6 +767,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/affiliate/'
     | '/affiliate/tasks/$userId'
+    | '/smart-groups/'
     | '/buy-aitoken/'
     | '/channels/'
     | '/dashboard/'
@@ -830,6 +841,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/affiliate'
     | '/affiliate/tasks/$userId'
+    | '/smart-groups'
     | '/buy-aitoken'
     | '/channels'
     | '/dashboard'
@@ -906,6 +918,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/affiliate/'
     | '/_authenticated/affiliate/tasks/$userId'
+    | '/_authenticated/smart-groups/'
     | '/_authenticated/buy-aitoken/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
@@ -1383,6 +1396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatChatIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/smart-groups/': {
+      id: '/_authenticated/smart-groups/'
+      path: '/smart-groups'
+      fullPath: '/smart-groups/'
+      preLoaderRoute: typeof AuthenticatedSmartGroupsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/(auth)/user/reset': {
       id: '/(auth)/user/reset'
       path: '/user/reset'
@@ -1585,6 +1605,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedAffiliateIndexRoute: typeof AuthenticatedAffiliateIndexRoute
   AuthenticatedAffiliateTasksUserIdRoute: typeof AuthenticatedAffiliateTasksUserIdRoute
+  AuthenticatedSmartGroupsIndexRoute: typeof AuthenticatedSmartGroupsIndexRoute
   AuthenticatedBuyAitokenIndexRoute: typeof AuthenticatedBuyAitokenIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -1618,6 +1639,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedAffiliateIndexRoute: AuthenticatedAffiliateIndexRoute,
   AuthenticatedAffiliateTasksUserIdRoute: AuthenticatedAffiliateTasksUserIdRoute,
+  AuthenticatedSmartGroupsIndexRoute: AuthenticatedSmartGroupsIndexRoute,
   AuthenticatedBuyAitokenIndexRoute: AuthenticatedBuyAitokenIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,

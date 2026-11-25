@@ -37,7 +37,7 @@ type Props = {
   value: string;
   groupNames: string[];
   onChange: (value: string) => void;
-  onInvalidChange: (invalid: boolean) => void;
+  onInvalidChange?: (invalid: boolean) => void;
   onSave: () => void;
   isSaving: boolean;
 };
@@ -146,7 +146,7 @@ export function SmartGroupsEditor({
     });
   }, [duplicateNames.length, groupNames, rows]);
 
-  useEffect(() => onInvalidChange(invalid), [invalid, onInvalidChange]);
+  useEffect(() => onInvalidChange?.(invalid), [invalid, onInvalidChange]);
 
   const emit = useCallback(
     (nextRows: SmartGroupDraft[]) => {

@@ -566,7 +566,9 @@ func SetApiRouter(router *gin.Engine) {
 		groupRoute.Use(middleware.AdminAuth())
 		{
 			groupRoute.GET("/", controller.GetGroups)
-			groupRoute.GET("/smart/users", controller.SearchSmartGroupUsers)
+			groupRoute.GET("/smart/settings", middleware.RequirePermission(authz.SmartGroupManage), controller.GetSmartGroupSettings)
+			groupRoute.PUT("/smart/settings", middleware.RequirePermission(authz.SmartGroupManage), controller.UpdateSmartGroupSettings)
+			groupRoute.GET("/smart/users", middleware.RequirePermission(authz.SmartGroupManage), controller.SearchSmartGroupUsers)
 			groupRoute.POST("/rename", controller.RenameGroup)
 			groupRoute.POST("/delete", controller.DeleteGroup)
 		}
