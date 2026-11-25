@@ -14,24 +14,35 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 
-type SmartRoute = { values: string[]; group: string };
+type SmartRoute = { values: string[]; group: string; presence?: PresenceRoute };
+type PresenceRoute = {
+  parameter: string;
+  present_group: string;
+  absent_group: string;
+};
 type SmartGroup = {
   description: string;
   parameter: string;
   routes: SmartRoute[];
   default_group: string;
+  default_presence?: PresenceRoute;
   user_selectable?: boolean;
   user_ids?: number[];
 };
-type RouteDraft = { id: string; value: string; group: string };
+type RouteDraft = { id: string; value: string; group: string; presence?: PresenceRoute };
 type SmartGroupDraft = Omit<SmartGroup, "routes" | "user_selectable" | "user_ids"> & {
   id: string;
   name: string;
   routes: RouteDraft[];
+  default_presence?: PresenceRoute;
   user_selectable: boolean;
   user_ids: number[];
 };
 type SmartGroupUser = { id: number; username: string; display_name: string };
+
+function isValidParameterPath(path: string) {
+  return /^[A-Za-z0-9_-]+(?:\[\])?(?:\.[A-Za-z0-9_-]+(?:\[\])?)*$/.test(path.trim());
+}
 
 type UserAssignmentProps = {
   userIds: number[];
@@ -166,6 +177,95 @@ function SmartGroupUserAssignment({
   );
 }
 
+type SmartGroupTargetEditorProps = {
+  group: string;
+  presence?: PresenceRoute;
+  groupNames: string[];
+  onChange: (group: string, presence?: PresenceRoute) => void;
+};
+
+function SmartGroupTargetEditor({
+  group,
+  presence,
+  groupNames,
+  onChange,
+}: SmartGroupTargetEditorProps) {
+  const { t } = useTranslation();
+  const setPresenceEnabled = (enabled: boolean) => {
+    if (enabled) {
+      onChange("", {
+        parameter: "",
+        present_group: groupNames[0] || "",
+        absent_group: groupNames[0] || "",
+      });
+    } else {
+      onChange(presence?.present_group || groupNames[0] || "", undefined);
+    }
+  };
+
+  return (
+    <div className="min-w-0 space-y-2">
+      {!presence ? (
+        <label className="block space-y-1 text-sm">
+          <span>{t("Pricing group")}</span>
+          <select
+            className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+            value={group}
+            onChange={(event) => onChange(event.target.value)}
+          >
+            <option value="">{t("Select a pricing group")}</option>
+            {groupNames.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
+      ) : (
+        <>
+          <label className="block space-y-1 text-sm">
+            <span>{t("Second-level parameter path")}</span>
+            <Input
+              value={presence.parameter}
+              aria-invalid={!isValidParameterPath(presence.parameter)}
+              placeholder="content[].video_url"
+              onChange={(event) => onChange(group, { ...presence, parameter: event.target.value })}
+            />
+            <span className="text-muted-foreground block text-xs">
+              {t("Use dots for nested fields and [] for array items, for example content[].video_url.")}
+            </span>
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="block space-y-1 text-sm">
+              <span>{t("When the parameter has a value")}</span>
+              <select
+                className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                value={presence.present_group}
+                onChange={(event) => onChange(group, { ...presence, present_group: event.target.value })}
+              >
+                {groupNames.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>{t("When the parameter has no value")}</span>
+              <select
+                className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
+                value={presence.absent_group}
+                onChange={(event) => onChange(group, { ...presence, absent_group: event.target.value })}
+              >
+                {groupNames.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+            </label>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            {t("Null, blank strings, and empty arrays or objects count as no value. Zero and false count as values.")}
+          </p>
+        </>
+      )}
+      <label className="flex items-center gap-2 text-xs">
+        <Checkbox checked={!!presence} onCheckedChange={(checked) => setPresenceEnabled(checked === true)} />
+        <span>{t("Continue with second-level routing when this branch is selected")}</span>
+      </label>
+    </div>
+  );
+}
+
 type Props = {
   value: string;
   groupNames: string[];
@@ -186,9 +286,11 @@ function parseGroups(value: string): SmartGroupDraft[] {
           id: crypto.randomUUID(),
           value: routeValue,
           group: route.group,
+          presence: route.presence,
         })),
       ),
       default_group: group.default_group || "",
+      default_presence: group.default_presence,
       user_selectable: group.user_selectable ?? true,
       user_ids: group.user_ids || [],
     }));
@@ -274,10 +376,20 @@ export function SmartGroupsEditor({
         row.name.trim() === "default" ||
         groupNames.includes(row.name.trim()) ||
         !row.parameter.trim() ||
-        !groupNames.includes(row.default_group) ||
+        (row.default_presence
+          ? !isValidParameterPath(row.default_presence.parameter) ||
+            !groupNames.includes(row.default_presence.present_group) ||
+            !groupNames.includes(row.default_presence.absent_group)
+          : !groupNames.includes(row.default_group)) ||
         values.some((routeValue) => !routeValue) ||
         new Set(values).size !== values.length ||
-        row.routes.some((route) => !groupNames.includes(route.group))
+        row.routes.some((route) =>
+          route.presence
+            ? !isValidParameterPath(route.presence.parameter) ||
+              !groupNames.includes(route.presence.present_group) ||
+              !groupNames.includes(route.presence.absent_group)
+            : !groupNames.includes(route.group),
+        )
       );
     });
   }, [duplicateNames.length, groupNames, rows]);
@@ -295,15 +407,23 @@ export function SmartGroupsEditor({
           description: row.description,
           parameter: row.parameter.trim(),
           routes: row.routes
-            .filter((route) => route.value.trim() && route.group)
-            .map((route) => ({
-              values: [route.value.trim()],
-              group: route.group,
-            })),
+            .filter((route) => route.value.trim() && (route.presence || route.group))
+            .map((route) => {
+              const serializedRoute: SmartRoute & { presence?: PresenceRoute } = {
+                values: [route.value.trim()],
+                group: route.presence ? "" : route.group,
+                ...(route.presence ? { presence: route.presence } : {}),
+              };
+              return serializedRoute;
+            }),
           default_group: row.default_group,
           user_selectable: row.user_selectable,
           user_ids: row.user_ids,
         };
+        if (row.default_presence) {
+          config[name].default_presence = row.default_presence;
+          config[name].default_group = "";
+        }
       }
       const serialized = JSON.stringify(config, null, 2);
       setSourceValue(serialized);
@@ -328,6 +448,7 @@ export function SmartGroupsEditor({
         parameter: "resolution",
         routes: [],
         default_group: groupNames[0] || "",
+        default_presence: undefined,
         user_selectable: true,
         user_ids: [],
       },
@@ -473,7 +594,7 @@ export function SmartGroupsEditor({
                   </Button>
                 </div>
                 {row.routes.map((route) => (
-                  <div key={route.id} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.7fr)_2.5rem] md:items-end">
+                  <div key={route.id} className="grid gap-2 rounded-md border p-3 md:grid-cols-[minmax(0,1fr)_minmax(14rem,0.8fr)_2.5rem] md:items-end">
                     <label className="space-y-1 text-sm">
                       <span>{t("Parameter value")}</span>
                       <Input
@@ -483,17 +604,14 @@ export function SmartGroupsEditor({
                         onChange={(event) => updateRow(index, { routes: row.routes.map((item) => item.id === route.id ? { ...item, value: event.target.value } : item) })}
                       />
                     </label>
-                    <label className="space-y-1 text-sm">
-                      <span>{t("Pricing group")}</span>
-                      <select
-                        className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm"
-                        value={route.group}
-                        onChange={(event) => updateRow(index, { routes: row.routes.map((item) => item.id === route.id ? { ...item, group: event.target.value } : item) })}
-                      >
-                        <option value="">{t("Select a pricing group")}</option>
-                        {groupNames.map((name) => <option key={name} value={name}>{name}</option>)}
-                      </select>
-                    </label>
+                    <SmartGroupTargetEditor
+                      group={route.group}
+                      presence={route.presence}
+                      groupNames={groupNames}
+                      onChange={(group, presence) => updateRow(index, {
+                        routes: row.routes.map((item) => item.id === route.id ? { ...item, group, presence } : item),
+                      })}
+                    />
                     <Button type="button" variant="ghost" size="icon" aria-label={t("Delete")} onClick={() => updateRow(index, { routes: row.routes.filter((item) => item.id !== route.id) })}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -503,14 +621,19 @@ export function SmartGroupsEditor({
                   {t("Unmatched or missing parameter values use the default pricing group.")}
                 </p>
               </div>
-              <div className="grid gap-3 md:grid-cols-[minmax(12rem,0.7fr)_auto] md:items-end">
-                <label className="space-y-1 text-sm">
-                  <span>{t("Default pricing group")}</span>
-                  <select className="border-input bg-background h-9 w-full rounded-md border px-2 text-sm" value={row.default_group} onChange={(event) => updateRow(index, { default_group: event.target.value })}>
-                    <option value="">{t("Select a pricing group")}</option>
-                    {groupNames.map((name) => <option key={name} value={name}>{name}</option>)}
-                  </select>
-                </label>
+              <div className="grid gap-3 md:grid-cols-[minmax(12rem,1fr)_auto] md:items-end">
+                <div>
+                  <p className="mb-1 text-sm font-medium">{t("Default pricing group")}</p>
+                  <SmartGroupTargetEditor
+                    group={row.default_group}
+                    presence={row.default_presence}
+                    groupNames={groupNames}
+                    onChange={(defaultGroup, defaultPresence) => updateRow(index, {
+                      default_group: defaultGroup,
+                      default_presence: defaultPresence,
+                    })}
+                  />
+                </div>
                 <Button type="button" variant="ghost" size="icon" aria-label={t("Delete")} onClick={() => { emit(rows.filter((_, rowIndex) => rowIndex !== index)); setEditingId(null); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -524,7 +647,18 @@ export function SmartGroupsEditor({
         {rows.some((row) => row.routes.some((route) => !route.value.trim()) || new Set(row.routes.map((route) => route.value.trim()).filter(Boolean)).size !== row.routes.map((route) => route.value.trim()).filter(Boolean).length) && (
           <p className="text-destructive text-sm">{t("Routing parameter values must not be empty or duplicated within a smart group.")}</p>
         )}
-        {rows.some((row) => row.routes.some((route) => !groupNames.includes(route.group)) || !groupNames.includes(row.default_group)) && (
+        {rows.some((row) =>
+          row.routes.some((route) => route.presence
+            ? !isValidParameterPath(route.presence.parameter) ||
+              !groupNames.includes(route.presence.present_group) ||
+              !groupNames.includes(route.presence.absent_group)
+            : !groupNames.includes(route.group)) ||
+          (row.default_presence
+            ? !isValidParameterPath(row.default_presence.parameter) ||
+              !groupNames.includes(row.default_presence.present_group) ||
+              !groupNames.includes(row.default_presence.absent_group)
+            : !groupNames.includes(row.default_group))
+        ) && (
           <p className="text-destructive text-sm">{t("Every route and default must target an existing pricing group.")}</p>
         )}
       </CardContent>

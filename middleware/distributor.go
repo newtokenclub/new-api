@@ -45,9 +45,15 @@ func Distribute() func(c *gin.Context) {
 				abortWithOpenAiMessage(c, http.StatusBadRequest, parameterErr.Error())
 				return
 			}
-			pricingGroup, _, resolveErr := model.ResolveSmartGroup(tokenGroup, parameterValue)
+			pricingGroup, _, resolveErr := model.ResolveSmartGroupRoute(
+				model.GetSmartGroups()[tokenGroup],
+				parameterValue,
+				func(parameter string) (bool, error) {
+					return getSmartGroupParameterHasValue(c, parameter)
+				},
+			)
 			if resolveErr != nil {
-				abortWithOpenAiMessage(c, http.StatusForbidden, resolveErr.Error())
+				abortWithOpenAiMessage(c, http.StatusBadRequest, resolveErr.Error())
 				return
 			}
 			if !ratio_setting.ContainsGroupRatio(pricingGroup) {
@@ -493,6 +499,38 @@ func getSmartGroupParameterValue(c *gin.Context, parameter string) (string, erro
 		return value.Raw, nil
 	}
 	return "", nil
+}
+
+func getSmartGroupParameterHasValue(c *gin.Context, parameter string) (bool, error) {
+	parameter = strings.TrimSpace(parameter)
+	if parameter == "" {
+		return false, errors.New("smart group second-level parameter is not configured")
+	}
+	for _, value := range c.Request.URL.Query()[parameter] {
+		if strings.TrimSpace(value) != "" {
+			return true, nil
+		}
+	}
+	if err := c.Request.ParseForm(); err != nil && !errors.Is(err, http.ErrNotSupported) {
+		return false, err
+	}
+	for _, value := range c.Request.PostForm[parameter] {
+		if strings.TrimSpace(value) != "" {
+			return true, nil
+		}
+	}
+	if !strings.Contains(c.Request.Header.Get("Content-Type"), "json") {
+		return false, nil
+	}
+	storage, err := common.GetBodyStorage(c)
+	if err != nil {
+		return false, err
+	}
+	body, err := storage.Bytes()
+	if err != nil {
+		return false, err
+	}
+	return model.SmartGroupJSONPathHasValue(body, parameter)
 }
 
 // 修复 #4834: GET /v1/video/generations/:task_id && /v1/video/:task_id 此前不解析 model，

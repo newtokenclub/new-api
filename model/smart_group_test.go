@@ -84,6 +84,76 @@ func TestSmartGroupPricingGroupsByUser(t *testing.T) {
 	}
 }
 
+func TestSmartGroupJSONPathHasValue(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		path string
+		want bool
+	}{
+		{name: "array object has a video value", body: `{"content":[{"type":"video_url","video_url":{"url":"asset://video"}}]}`, path: "content[].video_url", want: true},
+		{name: "null is empty", body: `{"video_url":null}`, path: "video_url", want: false},
+		{name: "blank string is empty", body: `{"video_url":" \t "}`, path: "video_url", want: false},
+		{name: "empty array is empty", body: `{"video_url":[]}`, path: "video_url", want: false},
+		{name: "array with only empty values is empty", body: `{"content":[{"video_url":null},{"video_url":""}]}`, path: "content[].video_url", want: false},
+		{name: "zero is a value", body: `{"seed":0}`, path: "seed", want: true},
+		{name: "false is a value", body: `{"enabled":false}`, path: "enabled", want: true},
+		{name: "missing path", body: `{"content":[]}`, path: "content[].video_url", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := SmartGroupJSONPathHasValue([]byte(tt.body), tt.path)
+			if err != nil {
+				t.Fatalf("SmartGroupJSONPathHasValue() error = %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("SmartGroupJSONPathHasValue() = %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateSmartGroupParameterPath(t *testing.T) {
+	for _, path := range []string{"video_url", "metadata.video_url", "content[].video_url", "content[].metadata.reference_audio"} {
+		if err := ValidateSmartGroupParameterPath(path); err != nil {
+			t.Errorf("expected path %q to be valid: %v", path, err)
+		}
+	}
+	for _, path := range []string{"", ".video_url", "content..video_url", "content[].", "content[*].video_url", "content[0].video_url"} {
+		if err := ValidateSmartGroupParameterPath(path); err == nil {
+			t.Errorf("expected path %q to be invalid", path)
+		}
+	}
+}
+
+func TestResolveSmartGroupRouteSupportsOptionalSecondLevel(t *testing.T) {
+	group := SmartGroup{
+		DefaultGroup: "legacy-default",
+		Routes: []SmartGroupRoute{{
+			Values: []string{"480p"},
+			Presence: &SmartGroupPresenceRoute{
+				Parameter: "content[].video_url",
+				PresentGroup: "with-video",
+				AbsentGroup: "without-video",
+			},
+		}},
+	}
+	got, matched, err := ResolveSmartGroupRoute(group, "480p", func(parameter string) (bool, error) {
+		if parameter != "content[].video_url" {
+			t.Fatalf("unexpected parameter %q", parameter)
+		}
+		return true, nil
+	})
+	if err != nil || !matched || got != "with-video" {
+		t.Fatalf("ResolveSmartGroupRoute() = (%q, %t, %v), want (with-video, true, nil)", got, matched, err)
+	}
+
+	got, matched, err = ResolveSmartGroupRoute(group, "720p", nil)
+	if err != nil || matched || got != "legacy-default" {
+		t.Fatalf("legacy default = (%q, %t, %v), want (legacy-default, false, nil)", got, matched, err)
+	}
+}
+
 func boolPointer(value bool) *bool {
 	return &value
 }

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -15,17 +16,25 @@ import (
 const SmartGroupsOption = "SmartGroups"
 
 type SmartGroupRoute struct {
-	Values []string `json:"values"`
-	Group  string   `json:"group"`
+	Values   []string                 `json:"values"`
+	Group    string                   `json:"group,omitempty"`
+	Presence *SmartGroupPresenceRoute `json:"presence,omitempty"`
+}
+
+type SmartGroupPresenceRoute struct {
+	Parameter    string `json:"parameter"`
+	PresentGroup string `json:"present_group"`
+	AbsentGroup  string `json:"absent_group"`
 }
 
 type SmartGroup struct {
-	Description    string            `json:"description"`
-	Parameter      string            `json:"parameter"`
-	Routes         []SmartGroupRoute `json:"routes"`
-	DefaultGroup   string            `json:"default_group"`
-	UserSelectable *bool             `json:"user_selectable,omitempty"`
-	UserIDs        []int             `json:"user_ids,omitempty"`
+	Description     string                   `json:"description"`
+	Parameter       string                   `json:"parameter"`
+	Routes          []SmartGroupRoute        `json:"routes"`
+	DefaultGroup    string                   `json:"default_group"`
+	DefaultPresence *SmartGroupPresenceRoute `json:"default_presence,omitempty"`
+	UserSelectable  *bool                    `json:"user_selectable,omitempty"`
+	UserIDs         []int                    `json:"user_ids,omitempty"`
 }
 
 type SmartGroupMap map[string]SmartGroup
@@ -98,15 +107,25 @@ func ValidateSmartGroups(raw string) error {
 			}
 			seenUsers[userID] = struct{}{}
 		}
-		if group.DefaultGroup != strings.TrimSpace(group.DefaultGroup) ||
-			!hasPricingGroup(pricingGroups, group.DefaultGroup) {
-			return fmt.Errorf("smart group %q has an invalid default pricing group", name)
+		if group.DefaultPresence == nil {
+			if group.DefaultGroup != strings.TrimSpace(group.DefaultGroup) ||
+				!hasPricingGroup(pricingGroups, group.DefaultGroup) {
+				return fmt.Errorf("smart group %q has an invalid default pricing group", name)
+			}
+		} else if err := validatePresenceRoute(name, *group.DefaultPresence, pricingGroups); err != nil {
+			return err
 		}
 		seen := map[string]struct{}{}
 		for _, route := range group.Routes {
-			if route.Group != strings.TrimSpace(route.Group) ||
-				!hasPricingGroup(pricingGroups, route.Group) || len(route.Values) == 0 {
+			if len(route.Values) == 0 {
 				return fmt.Errorf("smart group %q has an invalid route", name)
+			}
+			if route.Presence == nil {
+				if route.Group != strings.TrimSpace(route.Group) || !hasPricingGroup(pricingGroups, route.Group) {
+					return fmt.Errorf("smart group %q has an invalid route target", name)
+				}
+			} else if err := validatePresenceRoute(name, *route.Presence, pricingGroups); err != nil {
+				return err
 			}
 			for _, value := range route.Values {
 				value = strings.TrimSpace(value)
@@ -123,6 +142,108 @@ func ValidateSmartGroups(raw string) error {
 	return nil
 }
 
+func validatePresenceRoute(groupName string, route SmartGroupPresenceRoute, pricingGroups map[string]float64) error {
+	if route.Parameter != strings.TrimSpace(route.Parameter) {
+		return fmt.Errorf("smart group %q has an invalid second-level parameter: surrounding whitespace is not allowed", groupName)
+	}
+	if err := ValidateSmartGroupParameterPath(route.Parameter); err != nil {
+		return fmt.Errorf("smart group %q has an invalid second-level parameter: %w", groupName, err)
+	}
+	if !hasPricingGroup(pricingGroups, route.PresentGroup) || !hasPricingGroup(pricingGroups, route.AbsentGroup) {
+		return fmt.Errorf("smart group %q has an invalid second-level pricing group", groupName)
+	}
+	return nil
+}
+
+// ValidateSmartGroupParameterPath accepts dotted JSON paths with optional []
+// array traversal, such as content[].video_url.
+func ValidateSmartGroupParameterPath(path string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return errors.New("parameter path is required")
+	}
+	for _, part := range strings.Split(path, ".") {
+		part = strings.TrimSuffix(part, "[]")
+		if part == "" {
+			return errors.New("parameter path contains an empty segment")
+		}
+		for _, char := range part {
+			if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == '_' || char == '-') {
+				return fmt.Errorf("unsupported character %q", char)
+			}
+		}
+	}
+	return nil
+}
+
+// SmartGroupJSONPathHasValue reports whether a JSON path resolves to a value
+// that is not null, blank, or an empty collection. Zero and false are values.
+func SmartGroupJSONPathHasValue(body []byte, path string) (bool, error) {
+	if err := ValidateSmartGroupParameterPath(path); err != nil {
+		return false, err
+	}
+	var value any
+	if err := json.Unmarshal(body, &value); err != nil {
+		return false, err
+	}
+	return smartGroupPathHasValue(value, strings.Split(strings.TrimSpace(path), ".")), nil
+}
+
+func smartGroupPathHasValue(value any, parts []string) bool {
+	if len(parts) == 0 {
+		return smartGroupValueIsMeaningful(value)
+	}
+	part := parts[0]
+	traverseArray := strings.HasSuffix(part, "[]")
+	key := strings.TrimSuffix(part, "[]")
+	object, ok := value.(map[string]any)
+	if !ok {
+		return false
+	}
+	child, ok := object[key]
+	if !ok {
+		return false
+	}
+	if traverseArray {
+		items, ok := child.([]any)
+		if !ok {
+			return false
+		}
+		for _, item := range items {
+			if smartGroupPathHasValue(item, parts[1:]) {
+				return true
+			}
+		}
+		return false
+	}
+	return smartGroupPathHasValue(child, parts[1:])
+}
+
+func smartGroupValueIsMeaningful(value any) bool {
+	switch typed := value.(type) {
+	case nil:
+		return false
+	case string:
+		return strings.TrimSpace(typed) != ""
+	case []any:
+		for _, item := range typed {
+			if smartGroupValueIsMeaningful(item) {
+				return true
+			}
+		}
+		return false
+	case map[string]any:
+		for _, item := range typed {
+			if smartGroupValueIsMeaningful(item) {
+				return true
+			}
+		}
+		return false
+	default:
+		return true
+	}
+}
+
 func hasPricingGroup(groups map[string]float64, name string) bool {
 	_, ok := groups[strings.TrimSpace(name)]
 	return ok
@@ -133,15 +254,38 @@ func ResolveSmartGroup(name, parameterValue string) (string, bool, error) {
 	if !ok {
 		return "", false, errors.New("smart group does not exist")
 	}
+	return ResolveSmartGroupRoute(group, parameterValue, nil)
+}
+
+func ResolveSmartGroupRoute(group SmartGroup, parameterValue string, hasValue func(string) (bool, error)) (string, bool, error) {
 	parameterValue = strings.TrimSpace(parameterValue)
 	for _, route := range group.Routes {
 		for _, value := range route.Values {
 			if strings.TrimSpace(value) == parameterValue && parameterValue != "" {
-				return route.Group, true, nil
+				resolved, err := resolveSmartGroupTarget(route.Group, route.Presence, hasValue)
+				return resolved, true, err
 			}
 		}
 	}
-	return group.DefaultGroup, false, nil
+	resolved, err := resolveSmartGroupTarget(group.DefaultGroup, group.DefaultPresence, hasValue)
+	return resolved, false, err
+}
+
+func resolveSmartGroupTarget(group string, presence *SmartGroupPresenceRoute, hasValue func(string) (bool, error)) (string, error) {
+	if presence == nil {
+		return group, nil
+	}
+	if hasValue == nil {
+		return "", errors.New("smart group second-level parameter resolver is unavailable")
+	}
+	exists, err := hasValue(presence.Parameter)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		return presence.PresentGroup, nil
+	}
+	return presence.AbsentGroup, nil
 }
 
 func SaveSmartGroups(raw string) error {
@@ -253,9 +397,20 @@ func syncSmartGroupUserPermissions(tx *gorm.DB, groups SmartGroupMap) error {
 func smartGroupPricingGroupsByUser(groups SmartGroupMap, userSelectableGroups map[string]string, authorizationRequired map[string]bool) map[int][]string {
 	users := map[int]map[string]struct{}{}
 	for _, smartGroup := range groups {
-		targets := map[string]struct{}{smartGroup.DefaultGroup: {}}
+		targets := map[string]struct{}{}
+		if smartGroup.DefaultPresence == nil {
+			targets[smartGroup.DefaultGroup] = struct{}{}
+		} else {
+			targets[smartGroup.DefaultPresence.PresentGroup] = struct{}{}
+			targets[smartGroup.DefaultPresence.AbsentGroup] = struct{}{}
+		}
 		for _, route := range smartGroup.Routes {
-			targets[route.Group] = struct{}{}
+			if route.Presence == nil {
+				targets[route.Group] = struct{}{}
+			} else {
+				targets[route.Presence.PresentGroup] = struct{}{}
+				targets[route.Presence.AbsentGroup] = struct{}{}
+			}
 		}
 		for _, userID := range smartGroup.UserIDs {
 			for group := range targets {

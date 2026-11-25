@@ -227,12 +227,18 @@ func getGroupOptions(tx *gorm.DB) ([]Option, map[string]string, error) {
 
 func ensureGroupUnused(db *gorm.DB, name string) error {
 	for smartName, smartGroup := range GetSmartGroups() {
-		if smartGroup.DefaultGroup == name {
+		if smartGroup.DefaultPresence == nil && smartGroup.DefaultGroup == name {
 			return fmt.Errorf("group %q is the default target of smart group %q", name, smartName)
 		}
+		if smartGroup.DefaultPresence != nil && (smartGroup.DefaultPresence.PresentGroup == name || smartGroup.DefaultPresence.AbsentGroup == name) {
+			return fmt.Errorf("group %q is a second-level target of smart group %q", name, smartName)
+		}
 		for _, route := range smartGroup.Routes {
-			if route.Group == name {
+			if route.Presence == nil && route.Group == name {
 				return fmt.Errorf("group %q is a target of smart group %q", name, smartName)
+			}
+			if route.Presence != nil && (route.Presence.PresentGroup == name || route.Presence.AbsentGroup == name) {
+				return fmt.Errorf("group %q is a second-level target of smart group %q", name, smartName)
 			}
 		}
 	}
@@ -426,12 +432,28 @@ func renameGroupOption(key, value, oldName, newName string) (string, error) {
 			return value, err
 		}
 		for name, group := range groups {
-			if group.DefaultGroup == oldName {
+			if group.DefaultPresence == nil && group.DefaultGroup == oldName {
 				group.DefaultGroup = newName
 			}
+			if group.DefaultPresence != nil {
+				if group.DefaultPresence.PresentGroup == oldName {
+					group.DefaultPresence.PresentGroup = newName
+				}
+				if group.DefaultPresence.AbsentGroup == oldName {
+					group.DefaultPresence.AbsentGroup = newName
+				}
+			}
 			for index := range group.Routes {
-				if group.Routes[index].Group == oldName {
+				if group.Routes[index].Presence == nil && group.Routes[index].Group == oldName {
 					group.Routes[index].Group = newName
+				}
+				if group.Routes[index].Presence != nil {
+					if group.Routes[index].Presence.PresentGroup == oldName {
+						group.Routes[index].Presence.PresentGroup = newName
+					}
+					if group.Routes[index].Presence.AbsentGroup == oldName {
+						group.Routes[index].Presence.AbsentGroup = newName
+					}
 				}
 			}
 			groups[name] = group

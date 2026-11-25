@@ -38,6 +38,12 @@ func TestRenameGroupOption(t *testing.T) {
 			want:  `{"smart":{"parameter":"resolution","default_group":"new","routes":[{"values":["720p"],"group":"new"}],"user_ids":[7]}}`,
 		},
 		{
+			name:  "smart group second-level targets",
+			key:   SmartGroupsOption,
+			value: `{"smart":{"parameter":"resolution","default_presence":{"parameter":"content[].video_url","present_group":"old","absent_group":"fallback"},"routes":[{"values":["480p"],"presence":{"parameter":"content[].video_url","present_group":"old","absent_group":"fallback"}}]}}`,
+			want:  `{"smart":{"parameter":"resolution","default_presence":{"parameter":"content[].video_url","present_group":"new","absent_group":"fallback"},"routes":[{"values":["480p"],"presence":{"parameter":"content[].video_url","present_group":"new","absent_group":"fallback"}}]}}`,
+		},
+		{
 			name:  "empty auto groups normalize to an empty array",
 			key:   "AutoGroups",
 			value: "",
