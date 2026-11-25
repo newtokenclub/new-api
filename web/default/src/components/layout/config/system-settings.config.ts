@@ -63,7 +63,9 @@ function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {
         {
           title: t('Billing & Payment'),
           icon: CreditCard,
-          items: getBillingSectionNavItems(t),
+          items: getBillingSectionNavItems(t).filter(
+            (item) => item.url !== '/system-settings/billing/group-pricing',
+          ),
         },
         {
           title: t('Models & Routing'),
@@ -99,7 +101,7 @@ function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {
  */
 export const SYSTEM_SETTINGS_VIEW: SidebarView = {
   id: 'system-settings',
-  pathPattern: /^\/system-settings(\/|$)/,
+  pathPattern: /^\/system-settings(?!\/billing\/group-pricing(?:\/|$))(\/|$)/,
   parent: {
     to: '/dashboard/overview',
     label: 'Back to Dashboard',

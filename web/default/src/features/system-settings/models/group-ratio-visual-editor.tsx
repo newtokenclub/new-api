@@ -439,12 +439,6 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
 
   return (
     <div className="space-y-4">
-      <GroupPricingTable
-        groupRatio={groupRatio}
-        userUsableGroups={userUsableGroups}
-        authorizationRequiredGroups={authorizationRequiredGroups}
-        onChange={onChange}
-      />
       <SmartGroupsEditor
         value={smartGroups}
         groupNames={Object.keys(
@@ -457,6 +451,12 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         onInvalidChange={onSmartGroupInvalidChange}
         onSave={onSaveSmartGroups}
         isSaving={isSaving}
+      />
+      <GroupPricingTable
+        groupRatio={groupRatio}
+        userUsableGroups={userUsableGroups}
+        authorizationRequiredGroups={authorizationRequiredGroups}
+        onChange={onChange}
       />
 
       {/* Topup Group Ratios */}

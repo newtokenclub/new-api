@@ -270,14 +270,14 @@ export function SmartGroupsEditor({
         {rows.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium">{t("Configured smart groups")}</h3>
-            <div className="divide-y rounded-md border">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {rows.map((row) => (
                 <div
                   key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-3 p-3"
+                  className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border p-3"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{row.name}</p>
+                    <p className="break-words text-sm font-medium">{row.name}</p>
                     <p className="text-muted-foreground text-xs">
                       {row.description || row.parameter} · {t("{{count}} routing rules", { count: row.routes.length })}
                     </p>
@@ -291,15 +291,42 @@ export function SmartGroupsEditor({
                     <Pencil className="mr-2 h-4 w-4" />
                     {editingId === row.id ? t("Editing") : t("Edit")}
                   </Button>
+                  <div className="col-span-2 min-w-0 border-t pt-2">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground text-xs font-medium">
+                        {t("Assigned users")}
+                      </span>
+                      <span className="text-muted-foreground text-xs tabular-nums">
+                        {row.user_ids.length}
+                      </span>
+                    </div>
+                    {row.user_ids.length > 0 ? (
+                      <div className="flex max-h-20 flex-wrap gap-1 overflow-y-auto">
+                        {row.user_ids.map((userId) => {
+                          const user = userDetails[userId];
+                          return (
+                            <span
+                              key={userId}
+                              className="bg-muted/60 inline-flex max-w-full items-center rounded px-1.5 py-1 text-xs"
+                              title={user ? `${user.display_name || user.username} (${user.username}, #${user.id})` : `#${userId}`}
+                            >
+                              <span className="truncate">
+                                {user
+                                  ? `${user.display_name || user.username} (${user.username})`
+                                  : `#${userId}`}
+                              </span>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-xs">{t("No users assigned.")}</p>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
-        {rows.length > 0 && !editingId && (
-          <p className="text-muted-foreground text-sm">
-            {t("Select a smart group above to edit its settings.")}
-          </p>
         )}
         {rows.map((row, index) => {
           if (row.id !== editingId) return null;

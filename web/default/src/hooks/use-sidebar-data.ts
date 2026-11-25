@@ -31,6 +31,7 @@ import {
   ScrollText,
   ServerCog,
   Settings,
+  SlidersHorizontal,
   Ticket,
   Timer,
   User,
@@ -170,6 +171,11 @@ export function useSidebarData(): SidebarData {
             title: t('Models'),
             url: '/models/metadata',
             icon: Box,
+          },
+          {
+            title: t('Group Pricing'),
+            url: '/system-settings/billing/group-pricing',
+            icon: SlidersHorizontal,
           },
           {
             title: t('Async Task Concurrency'),
