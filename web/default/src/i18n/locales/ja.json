@@ -552,6 +552,8 @@
     "All users": "すべてのユーザー",
     "{{count}} assigned users": "割り当て済みユーザー {{count}} 人",
     "All users can select this smart group.": "すべてのユーザーがこのスマートグループを選択できます。",
+    "Public group": "公開グループ",
+    "Available to all users": "すべてのユーザーが利用可能",
     "Only assigned users can select this smart group.": "割り当てられたユーザーのみこのスマートグループを選択できます。",
     "Assigned users": "割り当て済みユーザー",
     "Smart group pricing groups": "スマートグループの料金グループ",

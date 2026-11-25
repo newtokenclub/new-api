@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { SectionPageLayout } from "@/components/layout";
+import { Button } from "@/components/ui/button";
 import { SmartGroupsEditor } from "@/features/system-settings/models/smart-groups-editor";
 import { api } from "@/lib/api";
 
@@ -20,6 +21,7 @@ export function SmartGroupsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<string | null>(null);
+  const [isInvalid, setIsInvalid] = useState(true);
   const settings = useQuery({
     queryKey: ["smart-group-settings"],
     queryFn: async () =>
@@ -62,6 +64,18 @@ export function SmartGroupsPage() {
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t("Smart groups")}</SectionPageLayout.Title>
+      {!settings.isLoading && !settings.isError && (
+        <SectionPageLayout.Actions>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => save.mutate(value)}
+            disabled={save.isPending || isInvalid}
+          >
+            {save.isPending ? t("Saving...") : t("Save smart groups")}
+          </Button>
+        </SectionPageLayout.Actions>
+      )}
       <SectionPageLayout.Content>
         {settings.isLoading ? (
           <div className="text-muted-foreground flex min-h-40 items-center justify-center text-sm">
@@ -76,8 +90,7 @@ export function SmartGroupsPage() {
             value={value}
             groupNames={groupNames}
             onChange={setDraft}
-            onSave={() => save.mutate(value)}
-            isSaving={save.isPending}
+            onInvalidChange={setIsInvalid}
           />
         )}
       </SectionPageLayout.Content>

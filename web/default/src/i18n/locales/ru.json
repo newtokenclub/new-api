@@ -552,6 +552,8 @@
     "All users": "Все пользователи",
     "{{count}} assigned users": "Назначенные пользователи: {{count}}",
     "All users can select this smart group.": "Все пользователи могут выбирать эту умную группу.",
+    "Public group": "Публичная группа",
+    "Available to all users": "Доступна всем пользователям",
     "Only assigned users can select this smart group.": "Эту умную группу могут выбирать только назначенные пользователи.",
     "Assigned users": "Назначенные пользователи",
     "Smart group pricing groups": "Ценовые группы смарт-группы",

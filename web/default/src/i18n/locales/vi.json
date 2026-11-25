@@ -552,6 +552,8 @@
     "All users": "Tất cả người dùng",
     "{{count}} assigned users": "{{count}} người dùng được chỉ định",
     "All users can select this smart group.": "Mọi người dùng đều có thể chọn nhóm thông minh này.",
+    "Public group": "Nhóm công khai",
+    "Available to all users": "Mọi người dùng đều có thể sử dụng",
     "Only assigned users can select this smart group.": "Chỉ người dùng được chỉ định mới có thể chọn nhóm thông minh này.",
     "Assigned users": "Người dùng được chỉ định",
     "Smart group pricing groups": "Nhóm giá thuộc nhóm thông minh",

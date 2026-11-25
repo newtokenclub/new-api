@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { Globe2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -33,13 +33,144 @@ type SmartGroupDraft = Omit<SmartGroup, "routes" | "user_selectable" | "user_ids
 };
 type SmartGroupUser = { id: number; username: string; display_name: string };
 
+type UserAssignmentProps = {
+  userIds: number[];
+  userDetails: Record<number, SmartGroupUser>;
+  onAdd: (user: SmartGroupUser) => void;
+  onRemove: (userId: number) => void;
+};
+
+function SmartGroupUserAssignment({
+  userIds,
+  userDetails,
+  onAdd,
+  onRemove,
+}: UserAssignmentProps) {
+  const { t } = useTranslation();
+  const [keyword, setKeyword] = useState("");
+  const [results, setResults] = useState<SmartGroupUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const searchUsers = async () => {
+    const query = keyword.trim();
+    if (!query) {
+      setResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await api.get<{ success: boolean; data?: SmartGroupUser[] }>(
+        "/api/group/smart/users",
+        { params: { keyword: query } },
+      );
+      setResults(response.data.data || []);
+    } catch {
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const addUser = (user: SmartGroupUser) => {
+    onAdd(user);
+    setResults((current) => current.filter((candidate) => candidate.id !== user.id));
+  };
+
+  return (
+    <div className="col-span-2 min-w-0 border-t pt-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-muted-foreground text-xs font-medium">
+          {t("Assigned users")}
+        </span>
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {userIds.length}
+        </span>
+      </div>
+      <p className="text-muted-foreground mb-2 text-xs">
+        {t("Only assigned users can select this smart group.")}
+      </p>
+      <div className="flex gap-2">
+        <Input
+          className="min-w-0"
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+          onKeyDown={(event) => event.key === "Enter" && void searchUsers()}
+          placeholder={t("Search users to add")}
+          aria-label={t("Search users to add")}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="shrink-0"
+          onClick={() => void searchUsers()}
+          disabled={isSearching || !keyword.trim()}
+        >
+          <Search className="size-4 sm:mr-1.5" />
+          <span className="hidden sm:inline">
+            {isSearching ? t("Searching...") : t("Search")}
+          </span>
+        </Button>
+      </div>
+      {results.length > 0 && (
+        <div className="mt-2 flex max-h-28 flex-wrap gap-1.5 overflow-y-auto rounded-md border p-2">
+          {results.map((user) => (
+            <button
+              key={user.id}
+              type="button"
+              className="hover:bg-muted inline-flex max-w-full items-center gap-1.5 rounded border px-2 py-1 text-left text-xs"
+              disabled={userIds.includes(user.id)}
+              onClick={() => addUser(user)}
+            >
+              <span className="max-w-48 truncate">
+                {user.display_name || user.username} ({user.username}, #{user.id})
+              </span>
+              <span className="text-muted-foreground shrink-0">{t("Add")}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
+        {userIds.map((userId) => {
+          const user = userDetails[userId];
+          return (
+            <span
+              key={userId}
+              className="bg-muted/60 inline-flex max-w-full items-center gap-1 rounded px-1.5 py-1 text-xs"
+              title={user ? `${user.display_name || user.username} (${user.username}, #${user.id})` : `#${userId}`}
+            >
+              <span className="max-w-48 truncate">
+                {user
+                  ? `${user.display_name || user.username} (${user.username})`
+                  : `#${userId}`}
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="size-5 shrink-0"
+                title={t("Remove")}
+                aria-label={`${t("Remove")} ${user?.username || userId}`}
+                onClick={() => onRemove(userId)}
+              >
+                <Trash2 className="size-3" />
+              </Button>
+            </span>
+          );
+        })}
+        {userIds.length === 0 && (
+          <p className="text-muted-foreground text-xs">{t("No users assigned.")}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type Props = {
   value: string;
   groupNames: string[];
   onChange: (value: string) => void;
   onInvalidChange?: (invalid: boolean) => void;
-  onSave: () => void;
-  isSaving: boolean;
 };
 
 function parseGroups(value: string): SmartGroupDraft[] {
@@ -71,18 +202,23 @@ export function SmartGroupsEditor({
   groupNames,
   onChange,
   onInvalidChange,
-  onSave,
-  isSaving,
 }: Props) {
   const { t } = useTranslation();
   const [rows, setRows] = useState(() => parseGroups(value));
   const [sourceValue, setSourceValue] = useState(value);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [expandedUserAssignmentsFor, setExpandedUserAssignmentsFor] = useState<string | null>(null);
-  const [userSearch, setUserSearch] = useState("");
-  const [userSearchResults, setUserSearchResults] = useState<SmartGroupUser[]>([]);
-  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
   const [userDetails, setUserDetails] = useState<Record<number, SmartGroupUser>>({});
+  const orderedRows = useMemo(
+    () =>
+      rows
+        .map((row, index) => ({ row, index }))
+        .sort(
+          (a, b) =>
+            Number(a.row.user_selectable) - Number(b.row.user_selectable) ||
+            a.index - b.index,
+        ),
+    [rows],
+  );
 
   const assignedUserIds = useMemo(
     () => [...new Set(rows.flatMap((row) => row.user_ids))].sort((a, b) => a - b),
@@ -203,34 +339,6 @@ export function SmartGroupsEditor({
     emit(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
   };
 
-  const searchUsers = async () => {
-    const keyword = userSearch.trim();
-    if (!keyword) {
-      setUserSearchResults([]);
-      return;
-    }
-    setIsSearchingUsers(true);
-    try {
-      const response = await api.get<{ success: boolean; data?: SmartGroupUser[] }>(
-        "/api/group/smart/users",
-        { params: { keyword } },
-      );
-      setUserSearchResults(response.data.data || []);
-    } catch {
-      setUserSearchResults([]);
-    } finally {
-      setIsSearchingUsers(false);
-    }
-  };
-
-  const addUser = (index: number, user: SmartGroupUser) => {
-    const row = rows[index];
-    if (!row || row.user_ids.includes(user.id)) return;
-    setUserDetails((current) => ({ ...current, [user.id]: user }));
-    updateRow(index, { user_ids: [...row.user_ids, user.id] });
-    setUserSearchResults((current) => current.filter((candidate) => candidate.id !== user.id));
-  };
-
   return (
     <Card className="rounded-md">
       <CardHeader className="bg-muted/20 border-b">
@@ -247,15 +355,6 @@ export function SmartGroupsEditor({
             <Plus className="mr-2 h-4 w-4" />
             {t("Add smart group")}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={onSave}
-            disabled={isSaving || invalid}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isSaving ? t("Saving...") : t("Save smart groups")}
-          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 pt-4">
@@ -271,7 +370,7 @@ export function SmartGroupsEditor({
           <div className="space-y-2">
             <h3 className="text-sm font-medium">{t("Configured smart groups")}</h3>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {rows.map((row) => (
+              {orderedRows.map(({ row, index }) => (
                 <div
                   key={row.id}
                   className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-md border p-3"
@@ -291,38 +390,25 @@ export function SmartGroupsEditor({
                     <Pencil className="mr-2 h-4 w-4" />
                     {editingId === row.id ? t("Editing") : t("Edit")}
                   </Button>
-                  <div className="col-span-2 min-w-0 border-t pt-2">
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground text-xs font-medium">
-                        {t("Assigned users")}
-                      </span>
-                      <span className="text-muted-foreground text-xs tabular-nums">
-                        {row.user_ids.length}
-                      </span>
+                  {row.user_selectable ? (
+                    <div className="bg-muted/30 text-muted-foreground col-span-2 flex min-h-12 items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                      <Globe2 className="text-primary size-4 shrink-0" />
+                      <span className="text-foreground font-medium">{t("Public group")}</span>
+                      <span>{t("Available to all users")}</span>
                     </div>
-                    {row.user_ids.length > 0 ? (
-                      <div className="flex max-h-20 flex-wrap gap-1 overflow-y-auto">
-                        {row.user_ids.map((userId) => {
-                          const user = userDetails[userId];
-                          return (
-                            <span
-                              key={userId}
-                              className="bg-muted/60 inline-flex max-w-full items-center rounded px-1.5 py-1 text-xs"
-                              title={user ? `${user.display_name || user.username} (${user.username}, #${user.id})` : `#${userId}`}
-                            >
-                              <span className="truncate">
-                                {user
-                                  ? `${user.display_name || user.username} (${user.username})`
-                                  : `#${userId}`}
-                              </span>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-xs">{t("No users assigned.")}</p>
-                    )}
-                  </div>
+                  ) : (
+                    <SmartGroupUserAssignment
+                      userIds={row.user_ids}
+                      userDetails={userDetails}
+                      onAdd={(user) => {
+                        setUserDetails((current) => ({ ...current, [user.id]: user }));
+                        updateRow(index, { user_ids: [...row.user_ids, user.id] });
+                      }}
+                      onRemove={(userId) =>
+                        updateRow(index, { user_ids: row.user_ids.filter((id) => id !== userId) })
+                      }
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -360,7 +446,6 @@ export function SmartGroupsEditor({
                       onCheckedChange={(checked) => {
                         const userSelectable = checked === true;
                         updateRow(index, { user_selectable: userSelectable });
-                        if (!userSelectable) setExpandedUserAssignmentsFor(null);
                       }}
                     />
                     <span className="space-y-1">
@@ -372,89 +457,7 @@ export function SmartGroupsEditor({
                       </span>
                     </span>
                   </label>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    aria-expanded={expandedUserAssignmentsFor === row.id}
-                    onClick={() => setExpandedUserAssignmentsFor(expandedUserAssignmentsFor === row.id ? null : row.id)}
-                  >
-                    {t("Assigned users")}
-                    <span className="bg-muted ml-1 rounded px-1.5 py-0.5 text-xs">{row.user_ids.length}</span>
-                    {expandedUserAssignmentsFor === row.id
-                      ? <ChevronUp className="ml-1 size-4" />
-                      : <ChevronDown className="ml-1 size-4" />}
-                  </Button>
                 </div>
-                {expandedUserAssignmentsFor === row.id && (
-                  <div className="space-y-2 border-t pt-3">
-                    <label className="block space-y-1 text-sm">
-                      <span className="text-muted-foreground block text-xs">
-                        {row.user_selectable
-                          ? t("Assigned members can use protected pricing groups routed by this smart group.")
-                          : t("Search by user ID, username, or display name, then add users to this smart group.")}
-                      </span>
-                    </label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={userSearch}
-                        onChange={(event) => setUserSearch(event.target.value)}
-                        onKeyDown={(event) => event.key === "Enter" && void searchUsers()}
-                        placeholder={t("Search users to add")}
-                      />
-                      <Button type="button" variant="outline" onClick={() => void searchUsers()} disabled={isSearchingUsers}>
-                        {isSearchingUsers ? t("Searching...") : t("Search")}
-                      </Button>
-                    </div>
-                    {userSearchResults.length > 0 && (
-                      <div className="flex max-h-48 flex-wrap gap-2 overflow-auto rounded-md border p-2">
-                        {userSearchResults.map((user) => (
-                          <button
-                            key={user.id}
-                            type="button"
-                            className="hover:bg-muted inline-flex max-w-full items-center gap-2 rounded border px-2 py-1 text-left text-xs"
-                            disabled={row.user_ids.includes(user.id)}
-                            onClick={() => addUser(index, user)}
-                          >
-                            <span className="max-w-64 truncate">
-                              {user.display_name || user.username} ({user.username}, #{user.id})
-                            </span>
-                            <span className="text-muted-foreground shrink-0">{t("Add")}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {row.user_ids.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {row.user_ids.map((userId) => {
-                          const user = userDetails[userId];
-                          return (
-                            <span key={userId} className="inline-flex max-w-full items-center gap-1 rounded border px-2 py-1 text-xs">
-                              <span className="max-w-64 truncate">
-                                {user
-                                  ? `${user.display_name || user.username} (${user.username}, #${user.id})`
-                                  : `#${userId}`}
-                              </span>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="size-6 shrink-0"
-                                title={t("Remove")}
-                                aria-label={t("Remove")}
-                                onClick={() => updateRow(index, { user_ids: row.user_ids.filter((id) => id !== userId) })}
-                              >
-                                <Trash2 className="size-3" />
-                              </Button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">{t("No users assigned.")}</p>
-                    )}
-                  </div>
-                )}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">

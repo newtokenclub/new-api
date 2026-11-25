@@ -552,6 +552,8 @@
     "All users": "Tous les utilisateurs",
     "{{count}} assigned users": "{{count}} utilisateurs attribués",
     "All users can select this smart group.": "Tous les utilisateurs peuvent choisir ce groupe intelligent.",
+    "Public group": "Groupe public",
+    "Available to all users": "Disponible pour tous les utilisateurs",
     "Only assigned users can select this smart group.": "Seuls les utilisateurs attribués peuvent choisir ce groupe intelligent.",
     "Assigned users": "Utilisateurs attribués",
     "Smart group pricing groups": "Groupes tarifaires des groupes intelligents",

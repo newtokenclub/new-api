@@ -552,6 +552,8 @@
     "All users": "All users",
     "{{count}} assigned users": "{{count}} assigned users",
     "All users can select this smart group.": "All users can select this smart group.",
+    "Public group": "Public group",
+    "Available to all users": "Available to all users",
     "Only assigned users can select this smart group.": "Only assigned users can select this smart group.",
     "Assigned users": "Assigned users",
     "Smart group pricing groups": "Smart group pricing groups",
