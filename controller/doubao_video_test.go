@@ -19,6 +19,9 @@ func TestBuildDoubaoVideoTaskResponsePreservesSuccessfulUsage(t *testing.T) {
 		UpdatedAt: 200,
 		PrivateData: model.TaskPrivateData{
 			ResultURL: "https://example.com/result.mp4",
+			BillingContext: &model.TaskBillingContext{
+				GroupRatio: 1.75,
+			},
 		},
 		Data: json.RawMessage(`{
 			"id":"upstream_secret",
@@ -32,9 +35,10 @@ func TestBuildDoubaoVideoTaskResponsePreservesSuccessfulUsage(t *testing.T) {
 	body, err := buildDoubaoVideoTaskResponse(task)
 	require.NoError(t, err)
 	var response struct {
-		ID      string `json:"id"`
-		Model   string `json:"model"`
-		Status  string `json:"status"`
+		ID         string `json:"id"`
+		Model      string `json:"model"`
+		Status     string `json:"status"`
+		GroupRatio float64 `json:"group_ratio"`
 		Content struct {
 			VideoURL string `json:"video_url"`
 		} `json:"content"`
@@ -47,6 +51,7 @@ func TestBuildDoubaoVideoTaskResponsePreservesSuccessfulUsage(t *testing.T) {
 	assert.Equal(t, "task_public", response.ID)
 	assert.Equal(t, "doubao-seedance-2-0-260128", response.Model)
 	assert.Equal(t, "succeeded", response.Status)
+	assert.Equal(t, 1.75, response.GroupRatio)
 	assert.Equal(t, "https://example.com/result.mp4", response.Content.VideoURL)
 	assert.Equal(t, 1200, response.Usage.CompletionTokens)
 	assert.Equal(t, 1500, response.Usage.TotalTokens)

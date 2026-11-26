@@ -383,7 +383,10 @@ func videoFetchByIDRespBodyBuilder(c *gin.Context) (respBody []byte, taskResp *d
 
 	// Gemini/Vertex 支持实时查询：用户 fetch 时直接从上游拉取最新状态
 	if realtimeResp := tryRealtimeFetch(originTask, isOpenAIVideoAPI); len(realtimeResp) > 0 {
-		respBody = realtimeResp
+		respBody, err = appendTaskGroupRatio(realtimeResp, originTask)
+		if err != nil {
+			taskResp = service.TaskErrorWrapper(err, "append_group_ratio_failed", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -400,7 +403,10 @@ func videoFetchByIDRespBodyBuilder(c *gin.Context) (respBody []byte, taskResp *d
 				taskResp = service.TaskErrorWrapper(err, "convert_to_openai_video_failed", http.StatusInternalServerError)
 				return
 			}
-			respBody = openAIVideoData
+			respBody, err = appendTaskGroupRatio(openAIVideoData, originTask)
+			if err != nil {
+				taskResp = service.TaskErrorWrapper(err, "append_group_ratio_failed", http.StatusInternalServerError)
+			}
 			return
 		}
 		taskResp = service.TaskErrorWrapperLocal(fmt.Errorf("not_implemented:%s", originTask.Platform), "not_implemented", http.StatusNotImplemented)
@@ -561,7 +567,7 @@ func taskModelName(task *model.Task) string {
 }
 
 func TaskModel2Dto(task *model.Task) *dto.TaskDto {
-	return &dto.TaskDto{
+	taskDto := &dto.TaskDto{
 		ID:         task.ID,
 		CreatedAt:  task.CreatedAt,
 		UpdatedAt:  task.UpdatedAt,
@@ -584,4 +590,24 @@ func TaskModel2Dto(task *model.Task) *dto.TaskDto {
 		Username:   task.Username,
 		Data:       task.Data,
 	}
+	if groupRatio, ok := task.GetGroupRatio(); ok {
+		taskDto.GroupRatio = &groupRatio
+	}
+	return taskDto
+}
+
+func appendTaskGroupRatio(responseBody []byte, task *model.Task) ([]byte, error) {
+	groupRatio, ok := task.GetGroupRatio()
+	if !ok {
+		return responseBody, nil
+	}
+	response := make(map[string]any)
+	if err := common.Unmarshal(responseBody, &response); err != nil {
+		return nil, err
+	}
+	if response == nil {
+		response = make(map[string]any)
+	}
+	response["group_ratio"] = groupRatio
+	return common.Marshal(response)
 }

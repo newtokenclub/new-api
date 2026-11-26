@@ -44,6 +44,9 @@ func buildDoubaoVideoTaskResponse(task *model.Task) ([]byte, error) {
 	response["status"] = doubaoTaskStatus(task.Status)
 	response["created_at"] = task.CreatedAt
 	response["updated_at"] = task.UpdatedAt
+	if groupRatio, ok := task.GetGroupRatio(); ok {
+		response["group_ratio"] = groupRatio
+	}
 
 	if task.Status == model.TaskStatusSuccess {
 		content, _ := response["content"].(map[string]any)

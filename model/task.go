@@ -143,6 +143,14 @@ func (t *Task) GetResultURL() string {
 	return t.FailReason
 }
 
+// GetGroupRatio returns the task's submission-time group ratio when available.
+func (t *Task) GetGroupRatio() (float64, bool) {
+	if t == nil || t.PrivateData.BillingContext == nil {
+		return 0, false
+	}
+	return t.PrivateData.BillingContext.GroupRatio, true
+}
+
 // GenerateTaskID 生成对外暴露的 task_xxxx 格式 ID
 func GenerateTaskID() string {
 	key, _ := common.GenerateRandomCharsKey(32)
