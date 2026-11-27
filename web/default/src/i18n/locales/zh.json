@@ -5783,6 +5783,7 @@
     "Sales inviter removed": "销售邀请人已移除",
     "A user can be assigned to at most two sales, including the primary inviter.": "每个用户最多关联两位销售，包括主邀请人。",
     "Search username": "搜索用户名",
+    "Search username, user ID, or subordinate remark": "搜索用户名、用户 ID 或下级备注",
     "Created at": "创建时间",
     "Last login": "最后登录",
     "Consumption": "消费",

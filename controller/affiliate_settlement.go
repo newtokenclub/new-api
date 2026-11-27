@@ -188,10 +188,12 @@ type affiliateSettlementListItem struct {
 	AttachmentURLs []string `json:"attachment_urls"`
 }
 
-func ListAffiliateSettlements(c *gin.Context){
-	q:=model.DB.Model(&model.AffiliateSettlementApplication{}).Preload("Items").Order("id DESC")
-	if c.GetInt("role")!=common.RoleRootUser {
-		q=q.Where("sales_id = ?",c.GetInt("id"))
+func ListAffiliateSettlements(c *gin.Context) {
+	page := common.GetPageQuery(c)
+	page.PageSize = 10
+	query := model.DB.Model(&model.AffiliateSettlementApplication{})
+	if c.GetInt("role") != common.RoleRootUser {
+		query = query.Where("sales_id = ?", c.GetInt("id"))
 	} else if rawSalesID := strings.TrimSpace(c.Query("sales_id")); rawSalesID != "" && rawSalesID != "all" {
 		salesID, err := strconv.Atoi(rawSalesID)
 		if err != nil || salesID <= 0 {
@@ -207,24 +209,66 @@ func ListAffiliateSettlements(c *gin.Context){
 			common.ApiErrorMsg(c, "sales user has no settlement applications")
 			return
 		}
-		q=q.Where("sales_id = ?",salesID)
+		query = query.Where("sales_id = ?", salesID)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		common.ApiError(c, err)
+		return
 	}
 	var rows []model.AffiliateSettlementApplication
-	if err:=q.Find(&rows).Error;err!=nil{common.ApiError(c,err);return}
-	config:=service.QuotaApplicationR2ConfigFromOptions()
-	result:=make([]affiliateSettlementListItem,0,len(rows))
-	for _,row:=range rows {
-		item:=affiliateSettlementListItem{AffiliateSettlementApplication:row,AttachmentURLs:[]string{}}
-		var sales,target model.User
-		model.DB.Select("id, username, display_name").First(&sales,row.SalesId)
-		model.DB.Select("id, username, display_name").First(&target,row.TargetUserId)
-		item.SalesUsername=sales.Username; item.SalesDisplayName=sales.DisplayName
-		item.TargetUsername=target.Username; item.TargetDisplayName=target.DisplayName
-		var keys []string
-		if json.Unmarshal([]byte(row.AttachmentKeys),&keys)==nil { for _,key:=range keys { if key!="" { item.AttachmentURLs=append(item.AttachmentURLs,service.R2ObjectURL(config,key)) } } }
-		result=append(result,item)
+	if err := query.Preload("Items").Order("id DESC").Limit(page.GetPageSize()).Offset(page.GetStartIdx()).Find(&rows).Error; err != nil {
+		common.ApiError(c, err)
+		return
 	}
-	c.JSON(http.StatusOK,gin.H{"success":true,"data":result})
+	userIDs := make([]int, 0, len(rows)*2)
+	seenUserIDs := make(map[int]struct{}, len(rows)*2)
+	for _, row := range rows {
+		for _, userID := range []int{row.SalesId, row.TargetUserId} {
+			if _, exists := seenUserIDs[userID]; !exists {
+				seenUserIDs[userID] = struct{}{}
+				userIDs = append(userIDs, userID)
+			}
+		}
+	}
+	usersByID := make(map[int]model.User, len(userIDs))
+	if len(userIDs) > 0 {
+		var users []model.User
+		if err := model.DB.Select("id, username, display_name").Where("id IN ?", userIDs).Find(&users).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		for _, user := range users {
+			usersByID[user.Id] = user
+		}
+	}
+	config := service.QuotaApplicationR2ConfigFromOptions()
+	result := make([]affiliateSettlementListItem, 0, len(rows))
+	for _, row := range rows {
+		item := affiliateSettlementListItem{AffiliateSettlementApplication: row, AttachmentURLs: []string{}}
+		sales := usersByID[row.SalesId]
+		target := usersByID[row.TargetUserId]
+		item.SalesUsername = sales.Username
+		item.SalesDisplayName = sales.DisplayName
+		item.TargetUsername = target.Username
+		item.TargetDisplayName = target.DisplayName
+		var keys []string
+		if json.Unmarshal([]byte(row.AttachmentKeys), &keys) == nil {
+			for _, key := range keys {
+				if key != "" {
+					item.AttachmentURLs = append(item.AttachmentURLs, service.R2ObjectURL(config, key))
+				}
+			}
+		}
+		result = append(result, item)
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success":   true,
+		"data":      result,
+		"total":     total,
+		"page":      page.Page,
+		"page_size": page.PageSize,
+	})
 }
 
 func GetAffiliateSettlementConsumption(c *gin.Context) {

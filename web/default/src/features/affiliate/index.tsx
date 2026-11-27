@@ -8,7 +8,14 @@ License, or (at your option) any later version.
 */
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { BarChart3, ListChecks, Pencil, Trash2 } from 'lucide-react'
+import {
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  ListChecks,
+  Pencil,
+  Trash2,
+} from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -57,13 +64,16 @@ type AffiliateDialog =
   | { type: 'settlement'; user: AffiliateUser }
   | null
 
-async function getAffiliateUsers(keyword: string) {
+const AFFILIATE_USER_PAGE_SIZE = 50
+const AFFILIATE_SETTLEMENT_PAGE_SIZE = 10
+
+async function getAffiliateUsers(keyword: string, page: number) {
   const res = await api.get('/api/user/affiliate/users', {
-    params: { p: 1, page_size: 100, keyword },
+    params: { p: page, page_size: AFFILIATE_USER_PAGE_SIZE, keyword },
   })
   return res.data as {
     success: boolean
-    data?: { items: AffiliateUser[] }
+    data?: { items: AffiliateUser[]; total: number; page: number }
     message?: string
   }
 }
@@ -79,6 +89,8 @@ export function Affiliate() {
   const authUser = useAuthStore((s) => s.auth.user)
   const [keyword, setKeyword] = useState('')
   const [filter, setFilter] = useState('')
+  const [usersPage, setUsersPage] = useState(1)
+  const [settlementsPage, setSettlementsPage] = useState(1)
   const [dialog, setDialog] = useState<AffiliateDialog>(null)
   const [amount, setAmount] = useState('')
   const [groups, setGroups] = useState<string[]>([])
@@ -118,8 +130,8 @@ export function Affiliate() {
   const statsScopeParams = isRoot ? { sales_id: statsSalesID } : undefined
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['affiliate-users', filter],
-    queryFn: () => getAffiliateUsers(filter),
+    queryKey: ['affiliate-users', filter, usersPage],
+    queryFn: () => getAffiliateUsers(filter, usersPage),
   })
 
   const { data: rulesData } = useQuery({
@@ -150,11 +162,19 @@ export function Affiliate() {
     enabled: isRoot,
   })
   const { data: settlementsData, refetch: refetchSettlements } = useQuery({
-    queryKey: ['affiliate-settlements', isRoot ? statsSalesID : authUser?.id],
+    queryKey: [
+      'affiliate-settlements',
+      isRoot ? statsSalesID : authUser?.id,
+      settlementsPage,
+    ],
     queryFn: async () =>
       (
         await api.get('/api/user/affiliate/settlements', {
-          params: statsScopeParams,
+          params: {
+            ...statsScopeParams,
+            p: settlementsPage,
+            page_size: AFFILIATE_SETTLEMENT_PAGE_SIZE,
+          },
         })
       ).data,
   })
@@ -235,6 +255,7 @@ export function Affiliate() {
       setDialog(null)
       setSettlementPreview(null)
       setSettlementAttachments([])
+      setSettlementsPage(1)
       await Promise.all([refetchSettlements(), refetchAffiliateStats()])
     } finally {
       setSubmitting(false)
@@ -463,6 +484,17 @@ export function Affiliate() {
   }
 
   const users = data?.data?.items || []
+  const usersTotal = data?.data?.total || 0
+  const usersPageCount = Math.max(
+    1,
+    Math.ceil(usersTotal / AFFILIATE_USER_PAGE_SIZE)
+  )
+  const settlements = settlementsData?.data || []
+  const settlementsTotal = settlementsData?.total || 0
+  const settlementsPageCount = Math.max(
+    1,
+    Math.ceil(settlementsTotal / AFFILIATE_SETTLEMENT_PAGE_SIZE)
+  )
   const openSettlementConsumption = (settlement: any) =>
     setSettlementConsumption({
       id: settlement.id,
@@ -1188,7 +1220,10 @@ export function Affiliate() {
                   </span>
                   <Select
                     value={statsSalesID}
-                    onValueChange={(value) => setStatsSalesID(value || 'all')}
+                    onValueChange={(value) => {
+                      setStatsSalesID(value || 'all')
+                      setSettlementsPage(1)
+                    }}
                   >
                     <SelectTrigger className='w-full sm:w-72'>
                       <SelectValue placeholder={t('All sales')} />
@@ -1258,11 +1293,21 @@ export function Affiliate() {
                   value={keyword}
                   onChange={(event) => setKeyword(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter') setFilter(keyword)
+                    if (event.key === 'Enter') {
+                      setFilter(keyword.trim())
+                      setUsersPage(1)
+                    }
                   }}
-                  placeholder={t('Search username')}
+                  placeholder={t(
+                    'Search username, user ID, or subordinate remark'
+                  )}
                 />
-                <Button onClick={() => setFilter(keyword)}>
+                <Button
+                  onClick={() => {
+                    setFilter(keyword.trim())
+                    setUsersPage(1)
+                  }}
+                >
                   {t('Search')}
                 </Button>
               </div>
@@ -1280,7 +1325,7 @@ export function Affiliate() {
                     </span>
                   )}
                 </div>
-                {(settlementsData?.data || []).length === 0 ? (
+                {settlements.length === 0 ? (
                   <div className='text-muted-foreground text-sm'>
                     {t('No settlement applications')}
                   </div>
@@ -1304,7 +1349,7 @@ export function Affiliate() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(settlementsData?.data || []).map((a: any) => (
+                          {settlements.map((a: any) => (
                             <tr key={a.id} className='border-b last:border-b-0'>
                               <td className='px-3 py-2 font-mono whitespace-nowrap tabular-nums'>
                                 #{a.id}
@@ -1353,7 +1398,7 @@ export function Affiliate() {
                       </table>
                     </div>
                     <div className='space-y-2 text-sm md:hidden'>
-                      {(settlementsData?.data || []).map((a: any) => (
+                      {settlements.map((a: any) => (
                         <div
                           key={a.id}
                           className='space-y-3 rounded-md border p-3'
@@ -1475,6 +1520,37 @@ export function Affiliate() {
                   </>
                 )}
               </div>
+              {settlementsTotal > AFFILIATE_SETTLEMENT_PAGE_SIZE && (
+                <div className='mb-5 flex flex-wrap items-center justify-between gap-2'>
+                  <span className='text-muted-foreground text-sm'>
+                    {t('Page {{current}} of {{total}}', {
+                      current: settlementsPage,
+                      total: settlementsPageCount,
+                    })}{' '}
+                    · {t('{{count}} records', { count: settlementsTotal })}
+                  </span>
+                  <div className='flex gap-2'>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      disabled={settlementsPage <= 1}
+                      onClick={() => setSettlementsPage((page) => page - 1)}
+                    >
+                      <ChevronLeft />
+                      {t('Previous page')}
+                    </Button>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      disabled={settlementsPage >= settlementsPageCount}
+                      onClick={() => setSettlementsPage((page) => page + 1)}
+                    >
+                      {t('Next page')}
+                      <ChevronRight />
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className='hidden overflow-auto rounded-md border lg:block'>
                 <table className='w-full min-w-[1320px] text-sm'>
                   <thead>
@@ -1609,6 +1685,37 @@ export function Affiliate() {
                     </article>
                   ))}
               </div>
+              {usersTotal > AFFILIATE_USER_PAGE_SIZE && (
+                <div className='mt-4 flex flex-wrap items-center justify-between gap-2'>
+                  <span className='text-muted-foreground text-sm'>
+                    {t('Page {{current}} of {{total}}', {
+                      current: usersPage,
+                      total: usersPageCount,
+                    })}{' '}
+                    · {t('{{count}} records', { count: usersTotal })}
+                  </span>
+                  <div className='flex gap-2'>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      disabled={usersPage <= 1}
+                      onClick={() => setUsersPage((page) => page - 1)}
+                    >
+                      <ChevronLeft />
+                      {t('Previous page')}
+                    </Button>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      disabled={usersPage >= usersPageCount}
+                      onClick={() => setUsersPage((page) => page + 1)}
+                    >
+                      {t('Next page')}
+                      <ChevronRight />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </SectionPageLayout.Content>

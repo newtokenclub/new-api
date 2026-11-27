@@ -64,13 +64,18 @@ func parseAffiliateTarget(c *gin.Context) (int, bool) {
 
 func GetAffiliateUsers(c *gin.Context) {
 	page := common.GetPageQuery(c)
+	page.PageSize = 50
 	salesID := c.GetInt("id")
 	linkedUsers := model.DB.Table("affiliate_sales_links").Select("user_id").Where("sales_id = ?", salesID)
 	query := model.DB.Model(&model.User{}).Where("deleted_at IS NULL").Where("(inviter_id = ? OR id IN (?))", salesID, linkedUsers)
 	if keyword := strings.TrimSpace(c.Query("keyword")); keyword != "" {
 		like := "%" + keyword + "%"
 		noteUsers := model.DB.Model(&model.AffiliateUserNote{}).Select("target_user_id").Where("sales_id = ? AND remark LIKE ?", salesID, like)
-		query = query.Where("(username LIKE ? OR display_name LIKE ? OR id IN (?))", like, like, noteUsers)
+		if userID, err := strconv.Atoi(keyword); err == nil && userID > 0 {
+			query = query.Where("(username LIKE ? OR display_name LIKE ? OR id = ? OR id IN (?))", like, like, userID, noteUsers)
+		} else {
+			query = query.Where("(username LIKE ? OR display_name LIKE ? OR id IN (?))", like, like, noteUsers)
+		}
 	}
 	if group := strings.TrimSpace(c.Query("group")); group != "" {
 		query = query.Where("(`group` = ? OR `group` LIKE ? OR `group` LIKE ? OR `group` LIKE ?)", group, group+",%", "%,"+group, "%,"+group+",%")
